@@ -25,7 +25,7 @@
  */
 
 // Main component
-export { FeedbackOverlay, default } from './FeedbackOverlay';
+export { FeedbackOverlay } from './FeedbackOverlay';
 
 // Types
 export type {
@@ -57,6 +57,5 @@ export {
   formatAsJSON,
   formatAsMarkdown,
   generateId,
-  parseFeedbackMarkdown,
   validateFeedback,
 } from './format-utils';

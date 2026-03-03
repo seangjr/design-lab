@@ -39,7 +39,7 @@ function formatComment(comment: Comment, index: number): string {
     ? `, ${element.tagName} with "${element.textContent}"`
     : '';
 
-  return `${index}. **${element.readablePath.split(' > ').pop()}** (${selectorPart}${textHint})
+  return `${index}. **${element.readablePath.split(' > ').slice(-2).join(' > ')}** (${selectorPart}${textHint})
    "${text}"`;
 }
 
@@ -178,7 +178,7 @@ export function downloadJSON(payload: FeedbackPayload, filename: string): void {
   document.body.removeChild(link);
 
   // Clean up the URL object
-  setTimeout(() => URL.revokeObjectURL(url), 100);
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
 /**
@@ -186,77 +186,6 @@ export function downloadJSON(payload: FeedbackPayload, filename: string): void {
  */
 export function generateId(): string {
   return `comment-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
-
-/**
- * Parse a pasted feedback string back into structured data.
- * Useful if the user needs to re-import their feedback.
- */
-export function parseFeedbackMarkdown(
-  markdown: string
-): Partial<FeedbackPayload> | null {
-  try {
-    const lines = markdown.split('\n');
-    const result: Partial<FeedbackPayload> = {
-      comments: [],
-      overall: '',
-    };
-
-    let currentVariant: VariantId | null = null;
-    let inOverall = false;
-    const overallLines: string[] = [];
-
-    for (const line of lines) {
-      // Extract target
-      const targetMatch = line.match(/^\*\*Target:\*\*\s*(.+)$/);
-      if (targetMatch) {
-        result.target = targetMatch[1].trim();
-        continue;
-      }
-
-      // Detect variant section
-      const variantMatch = line.match(/^### Variant ([A-F])$/);
-      if (variantMatch) {
-        currentVariant = variantMatch[1] as VariantId;
-        inOverall = false;
-        continue;
-      }
-
-      // Detect overall section
-      if (line === '### Overall Direction') {
-        inOverall = true;
-        currentVariant = null;
-        continue;
-      }
-
-      // Collect overall direction text
-      if (inOverall && !line.startsWith('---') && !line.startsWith('*')) {
-        overallLines.push(line);
-        continue;
-      }
-
-      // Parse comment lines (we can't fully reconstruct, but capture the text)
-      if (currentVariant && line.match(/^\d+\.\s+\*\*/)) {
-        // This is a comment header line - next quoted line will be the text
-        continue;
-      }
-
-      // Capture quoted feedback text
-      const quoteMatch = line.match(/^\s+"(.+)"$/);
-      if (quoteMatch && currentVariant) {
-        // We found feedback text but can't fully reconstruct the element info
-        // This is mainly for display purposes
-        continue;
-      }
-    }
-
-    result.overall = overallLines.join('\n').trim();
-
-    return result;
-  } catch (err) {
-    console.error('Failed to parse feedback markdown:', err);
-    return null;
-  }
 }
 
 /**
@@ -268,12 +197,8 @@ export function validateFeedback(
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
-  if (comments.length === 0) {
-    errors.push('Please add at least one comment to an element.');
-  }
-
-  if (!overall.trim()) {
-    errors.push('Please provide an overall direction for the design.');
+  if (comments.length === 0 && !overall.trim()) {
+    errors.push('Please add at least one comment or provide an overall direction.');
   }
 
   return {

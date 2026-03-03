@@ -102,8 +102,6 @@ export interface FeedbackState {
   overallDirection: string;
   /** Whether the submit modal is showing */
   showSubmitModal: boolean;
-  /** The formatted output (for modal preview) */
-  formattedOutput: string;
 }
 
 /**

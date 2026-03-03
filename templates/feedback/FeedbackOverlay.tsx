@@ -78,15 +78,16 @@ interface FeedbackState {
   currentCommentText: string;
   overallDirection: string;
   showSubmitModal: boolean;
-  formattedOutput: string;
 }
 
 const STORAGE_KEY = 'design-lab-feedback';
 const OVERLAY_CLASS_PREFIX = 'dl-feedback';
 
 // CSS isolation styles injected into head to override page styles with !important
+// 3.7: Deduplicated textarea CSS — shared base rule with min-height override
 const ISOLATION_STYLES = `
-  .${OVERLAY_CLASS_PREFIX}-textarea {
+  .${OVERLAY_CLASS_PREFIX}-textarea,
+  .${OVERLAY_CLASS_PREFIX}-overall-textarea {
     all: revert !important;
     box-sizing: border-box !important;
     width: 100% !important;
@@ -103,38 +104,32 @@ const ISOLATION_STYLES = `
     outline: none !important;
     line-height: 1.5 !important;
   }
-  .${OVERLAY_CLASS_PREFIX}-textarea:focus {
-    border-color: #6366f1 !important;
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
-  }
-  .${OVERLAY_CLASS_PREFIX}-textarea::placeholder {
-    color: #9ca3af !important;
-    opacity: 1 !important;
-  }
   .${OVERLAY_CLASS_PREFIX}-overall-textarea {
-    all: revert !important;
-    box-sizing: border-box !important;
-    width: 100% !important;
     min-height: 100px !important;
-    padding: 12px !important;
-    font-size: 14px !important;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-    color: #1f2937 !important;
-    background-color: #ffffff !important;
-    caret-color: #1f2937 !important;
-    border: 1px solid #d1d5db !important;
-    border-radius: 8px !important;
-    resize: vertical !important;
-    outline: none !important;
-    line-height: 1.5 !important;
   }
+  .${OVERLAY_CLASS_PREFIX}-textarea:focus,
   .${OVERLAY_CLASS_PREFIX}-overall-textarea:focus {
     border-color: #6366f1 !important;
     box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
   }
+  .${OVERLAY_CLASS_PREFIX}-textarea::placeholder,
   .${OVERLAY_CLASS_PREFIX}-overall-textarea::placeholder {
     color: #9ca3af !important;
     opacity: 1 !important;
+  }
+  .${OVERLAY_CLASS_PREFIX}-toggle:focus-visible,
+  .${OVERLAY_CLASS_PREFIX}-panel button:focus-visible,
+  .${OVERLAY_CLASS_PREFIX}-sidebar button:focus-visible,
+  .${OVERLAY_CLASS_PREFIX}-modal button:focus-visible {
+    outline: 2px solid #6366f1 !important;
+    outline-offset: 2px !important;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .${OVERLAY_CLASS_PREFIX}-toggle,
+    .${OVERLAY_CLASS_PREFIX}-pin,
+    .${OVERLAY_CLASS_PREFIX}-highlight {
+      transition: none !important;
+    }
   }
 `;
 
@@ -178,6 +173,7 @@ function getRelevantAttributes(element: HTMLElement): Record<string, string> {
   return attrs;
 }
 
+// 2.1: Changed nth-child to nth-of-type (counts same-tag siblings correctly)
 function generateStructuralPath(element: HTMLElement, variantRoot: HTMLElement): string {
   const path: string[] = [];
   let current: HTMLElement | null = element;
@@ -191,7 +187,7 @@ function generateStructuralPath(element: HTMLElement, variantRoot: HTMLElement):
       path.unshift(tag);
     } else {
       const index = siblings.indexOf(current) + 1;
-      path.unshift(`${tag}:nth-child(${index})`);
+      path.unshift(`${tag}:nth-of-type(${index})`);
     }
     current = parent;
     if (path.length >= 4) break;
@@ -199,9 +195,11 @@ function generateStructuralPath(element: HTMLElement, variantRoot: HTMLElement):
   return path.join(' > ');
 }
 
+// 2.2: Fixed data-cy attribute mismatch — now tracks which attribute was found
 function generateSelector(element: HTMLElement, variantRoot: HTMLElement): string {
-  const testId = element.getAttribute('data-testid') || element.getAttribute('data-cy');
-  if (testId) return `[data-testid="${testId}"]`;
+  const testIdAttr = element.getAttribute('data-testid') ? 'data-testid' : element.getAttribute('data-cy') ? 'data-cy' : null;
+  const testId = testIdAttr ? element.getAttribute(testIdAttr) : null;
+  if (testId && testIdAttr) return `[${testIdAttr}="${testId}"]`;
 
   const id = element.id;
   if (id && !isCssInJsClass(id) && !id.startsWith(':')) return `#${id}`;
@@ -346,10 +344,11 @@ function identifyElement(
   };
 }
 
+// 2.7: Fixed SVG className handling — use getAttribute('class') instead of .className
 function isOverlayElement(element: HTMLElement): boolean {
   let current: HTMLElement | null = element;
   while (current) {
-    if (current.className && typeof current.className === 'string' && current.className.includes(OVERLAY_CLASS_PREFIX)) {
+    if (current.getAttribute('class')?.includes(OVERLAY_CLASS_PREFIX)) {
       return true;
     }
     current = current.parentElement;
@@ -379,11 +378,12 @@ function groupByVariant(comments: Comment[]): Map<VariantId, Comment[]> {
   return new Map([...groups.entries()].sort(([a], [b]) => a.localeCompare(b)));
 }
 
+// 4.3: Keep last 2 path segments instead of just the last one
 function formatComment(comment: Comment, index: number): string {
   const { element, text } = comment;
   const selectorPart = `\`${element.selector}\``;
   const textHint = element.textContent ? `, ${element.tagName} with "${element.textContent}"` : '';
-  return `${index}. **${element.readablePath.split(' > ').pop()}** (${selectorPart}${textHint})
+  return `${index}. **${element.readablePath.split(' > ').slice(-2).join(' > ')}** (${selectorPart}${textHint})
    "${text}"`;
 }
 
@@ -447,10 +447,12 @@ function generateId(): string {
   return `comment-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+// 2.6: Allow submission with overall direction only (no comments required)
 function validateFeedback(comments: Comment[], overall: string): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
-  if (comments.length === 0) errors.push('Please add at least one comment to an element.');
-  if (!overall.trim()) errors.push('Please provide an overall direction for the design.');
+  if (comments.length === 0 && !overall.trim()) {
+    errors.push('Please add at least one comment or provide an overall direction.');
+  }
   return { valid: errors.length === 0, errors };
 }
 
@@ -493,8 +495,9 @@ const styles: Record<string, CSSProperties> = {
     zIndex: 9998,
     transition: 'all 100ms ease',
   },
+  // 2.3: Changed pin position from absolute to fixed
   pin: {
-    position: 'absolute',
+    position: 'fixed',
     width: '28px',
     height: '28px',
     backgroundColor: '#6366f1',
@@ -512,7 +515,6 @@ const styles: Record<string, CSSProperties> = {
     transform: 'translate(-50%, -50%)',
     transition: 'transform 150ms ease',
   },
-  // Note: Comment panel styles removed - comment input is now in sidebar
   buttonPrimary: {
     flex: 1,
     padding: '10px 16px',
@@ -532,6 +534,17 @@ const styles: Record<string, CSSProperties> = {
     color: '#374151',
     backgroundColor: '#fff',
     border: '1px solid #d1d5db',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    transition: 'background-color 150ms ease',
+  },
+  buttonDanger: {
+    padding: '10px 16px',
+    fontSize: '14px',
+    fontWeight: 500,
+    color: '#ef4444',
+    backgroundColor: '#fff',
+    border: '1px solid #fecaca',
     borderRadius: '8px',
     cursor: 'pointer',
     transition: 'background-color 150ms ease',
@@ -614,7 +627,6 @@ const styles: Record<string, CSSProperties> = {
     backgroundColor: '#f9fafb',
   },
   overallLabel: { fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '8px' },
-  // Note: overallTextarea styles moved to CSS injection for !important isolation
   submitSection: { padding: '16px', borderTop: '1px solid #e5e7eb' },
   submitButton: {
     width: '100%',
@@ -719,6 +731,7 @@ export function FeedbackOverlay({
   onSubmit,
 }: FeedbackOverlayProps) {
   // Load initial state from localStorage (lazy initialization)
+  // 4.5: Removed formattedOutput from FeedbackState — it's derived state
   const [state, setState] = useState<FeedbackState>(() => {
     const defaultState: FeedbackState = {
       isActive: false,
@@ -728,7 +741,6 @@ export function FeedbackOverlay({
       currentCommentText: '',
       overallDirection: '',
       showSubmitModal: false,
-      formattedOutput: '',
     };
 
     if (typeof window === 'undefined') return defaultState;
@@ -754,9 +766,22 @@ export function FeedbackOverlay({
   const [copySuccess, setCopySuccess] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isButtonHovered, setIsButtonHovered] = useState(false);
+  // 4.5: formattedOutput stored separately as derived state
+  const [formattedOutput, setFormattedOutput] = useState('');
+  // 2.8: Pin positions computed in useEffect, stored in state map
+  const [pinPositions, setPinPositions] = useState<Record<string, { x: number; y: number }>>({});
+  // 2.3: Scroll/resize counter to force pin recalculation
+  const [, setScrollTick] = useState(0);
 
   const panelRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // 2.4: Store click info in a ref instead of mutating DOM nodes
+  const clickInfoRef = useRef<{ variantInfo: { root: HTMLElement; variantId: VariantId }; clickX: number; clickY: number } | null>(null);
+  // 3.10: Double-click guard for copy button
+  const isCopyingRef = useRef(false);
+  // 3.2: Focus trap — save previously focused element
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   // Inject CSS isolation styles into head
   useEffect(() => {
@@ -797,7 +822,73 @@ export function FeedbackOverlay({
     }
   }, [state.panelPosition]);
 
+  // 2.3 + 2.8: Recalculate pin positions on scroll/resize and when comments change
+  useEffect(() => {
+    const recalcPins = () => {
+      const positions: Record<string, { x: number; y: number }> = {};
+      for (const comment of state.comments) {
+        const variantEl = document.querySelector(`[data-variant="${comment.variant}"]`);
+        if (!variantEl) continue;
+        const variantRect = variantEl.getBoundingClientRect();
+        positions[comment.id] = {
+          x: variantRect.left + (comment.coordinates.x / 100) * variantRect.width,
+          y: variantRect.top + (comment.coordinates.y / 100) * variantRect.height,
+        };
+      }
+      setPinPositions(positions);
+    };
+
+    recalcPins();
+
+    const handleScrollOrResize = () => {
+      setScrollTick((t) => t + 1);
+      recalcPins();
+    };
+
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    window.addEventListener('resize', handleScrollOrResize);
+    return () => {
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
+    };
+  }, [state.comments]);
+
+  // 3.2: Focus trap for submit modal
+  useEffect(() => {
+    if (state.showSubmitModal) {
+      previousFocusRef.current = document.activeElement as HTMLElement;
+      // Focus the modal after a tick so the DOM is rendered
+      requestAnimationFrame(() => {
+        if (modalRef.current) {
+          const firstFocusable = modalRef.current.querySelector<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          );
+          firstFocusable?.focus();
+        }
+      });
+    } else if (previousFocusRef.current) {
+      previousFocusRef.current.focus();
+      previousFocusRef.current = null;
+    }
+  }, [state.showSubmitModal]);
+
+  // 3.9: Keyboard shortcut — F key to toggle feedback mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable;
+      if (isInput) return;
+      if (e.key === 'f' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        toggleFeedbackMode();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  });
+
   // Handle document clicks in feedback mode
+  // 2.4: Uses clickInfoRef instead of DOM mutation
   const handleDocumentClick = useCallback(
     (e: MouseEvent) => {
       if (!state.isActive) return;
@@ -823,15 +914,15 @@ export function FeedbackOverlay({
       let panelY = e.clientY + 20;
 
       // Keep panel in viewport
-      if (panelX + panelWidth > viewportWidth - 380) { // 380 = sidebar width + margin
+      if (panelX + panelWidth > viewportWidth - 380) {
         panelX = e.clientX - panelWidth - 20;
       }
       if (panelY + panelHeight > viewportHeight - 20) {
         panelY = e.clientY - panelHeight - 20;
       }
 
-      // Store click info on element for later use
-      (target as any).__feedbackClickInfo = {
+      // 2.4: Store click info in ref instead of on DOM node
+      clickInfoRef.current = {
         variantInfo,
         clickX: e.clientX,
         clickY: e.clientY,
@@ -901,10 +992,11 @@ export function FeedbackOverlay({
     setHoverRect(null);
   };
 
+  // 2.4: Uses clickInfoRef instead of DOM mutation
   const saveComment = () => {
     if (!state.selectedElement || !state.currentCommentText.trim()) return;
 
-    const clickInfo = (state.selectedElement as any).__feedbackClickInfo;
+    const clickInfo = clickInfoRef.current;
     if (!clickInfo) return;
 
     const { variantInfo, clickX, clickY } = clickInfo;
@@ -933,13 +1025,11 @@ export function FeedbackOverlay({
       currentCommentText: '',
     }));
 
-    delete (state.selectedElement as any).__feedbackClickInfo;
+    clickInfoRef.current = null;
   };
 
   const cancelComment = () => {
-    if (state.selectedElement) {
-      delete (state.selectedElement as any).__feedbackClickInfo;
-    }
+    clickInfoRef.current = null;
     setState((prev) => ({
       ...prev,
       selectedElement: null,
@@ -955,6 +1045,7 @@ export function FeedbackOverlay({
     }));
   };
 
+  // 4.5: formattedOutput computed here and stored separately
   const openSubmitModal = () => {
     const validation = validateFeedback(state.comments, state.overallDirection);
 
@@ -965,56 +1056,97 @@ export function FeedbackOverlay({
 
     setValidationErrors([]);
     const formatted = formatAsMarkdown(state.comments, targetName, state.overallDirection);
+    setFormattedOutput(formatted);
 
     setState((prev) => ({
       ...prev,
       showSubmitModal: true,
-      formattedOutput: formatted,
     }));
   };
 
-  // Primary action: Copy to clipboard only
+  const closeSubmitModal = () => {
+    setState((prev) => ({ ...prev, showSubmitModal: false }));
+    setCopySuccess(false);
+  };
+
+  // 2.5: Removed auto-clear after copy. User must explicitly clear.
+  // 3.10: Double-click guard via isCopyingRef
   const handleCopyToClipboard = async () => {
-    const success = await copyToClipboard(state.formattedOutput);
-    setCopySuccess(success);
+    if (isCopyingRef.current) return;
+    isCopyingRef.current = true;
 
-    if (onSubmit) {
-      onSubmit({
-        version: '1.0',
-        target: targetName,
-        timestamp: new Date().toISOString(),
-        comments: state.comments,
-        overall: state.overallDirection,
-      });
-    }
+    try {
+      const success = await copyToClipboard(formattedOutput);
+      setCopySuccess(success);
 
-    if (success) {
-      setTimeout(() => {
-        localStorage.removeItem(STORAGE_KEY);
-        setState((prev) => ({
-          ...prev,
-          showSubmitModal: false,
-          comments: [],
-          overallDirection: '',
-          isActive: false,
-        }));
-        setCopySuccess(false);
-      }, 2000);
+      if (onSubmit) {
+        onSubmit({
+          version: '1.0',
+          target: targetName,
+          timestamp: new Date().toISOString(),
+          comments: state.comments,
+          overall: state.overallDirection,
+        });
+      }
+    } finally {
+      isCopyingRef.current = false;
     }
   };
 
-  const commentsByVariant = state.comments.reduce(
-    (acc, comment) => {
-      const variant = comment.variant;
-      if (!acc[variant]) acc[variant] = [];
-      acc[variant].push(comment);
-      return acc;
-    },
-    {} as Record<VariantId, Comment[]>
-  );
+  // 2.5: Explicit clear function for "Clear & Start Over" button
+  const handleClearAndStartOver = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setState((prev) => ({
+      ...prev,
+      showSubmitModal: false,
+      comments: [],
+      overallDirection: '',
+      isActive: false,
+    }));
+    setCopySuccess(false);
+    setFormattedOutput('');
+  };
+
+  // 3.8: Use groupByVariant utility and convert Map to Record
+  const grouped = groupByVariant(state.comments);
+  const commentsByVariant: Record<string, Comment[]> = {};
+  for (const [variantId, variantComments] of grouped) {
+    commentsByVariant[variantId] = variantComments;
+  }
 
   const getGlobalIndex = (comment: Comment): number => {
     return state.comments.findIndex((c) => c.id === comment.id) + 1;
+  };
+
+  // 2.6: Submit enabled when overallDirection has content OR comments exist
+  const canSubmit = state.comments.length > 0 || state.overallDirection.trim().length > 0;
+
+  // 3.2: Focus trap handler for modal
+  const handleModalKeyDown = (e: React.KeyboardEvent) => {
+    // 3.5: Escape key closes modal
+    if (e.key === 'Escape') {
+      closeSubmitModal();
+      return;
+    }
+
+    // Focus trap on Tab
+    if (e.key === 'Tab' && modalRef.current) {
+      const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusableElements.length === 0) return;
+
+      const first = focusableElements[0];
+      const last = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
   };
 
   if (typeof window === 'undefined') return null;
@@ -1033,7 +1165,8 @@ export function FeedbackOverlay({
           onMouseEnter={() => setIsButtonHovered(true)}
           onMouseLeave={() => setIsButtonHovered(false)}
         >
-          <span>💬</span>
+          {/* 3.3: aria-hidden on decorative emoji */}
+          <span aria-hidden="true">💬</span>
           <span>Add Feedback</span>
         </button>
       )}
@@ -1052,20 +1185,16 @@ export function FeedbackOverlay({
         />
       )}
 
-      {/* Comment Pins */}
+      {/* Comment Pins — 2.8: positions from useEffect state map */}
       {state.comments.map((comment) => {
-        const variantEl = document.querySelector(`[data-variant="${comment.variant}"]`);
-        if (!variantEl) return null;
-
-        const variantRect = variantEl.getBoundingClientRect();
-        const pinX = variantRect.left + (comment.coordinates.x / 100) * variantRect.width;
-        const pinY = variantRect.top + (comment.coordinates.y / 100) * variantRect.height;
+        const pos = pinPositions[comment.id];
+        if (!pos) return null;
 
         return (
           <div
             key={comment.id}
             className={`${OVERLAY_CLASS_PREFIX}-pin`}
-            style={{ ...styles.pin, left: pinX, top: pinY }}
+            style={{ ...styles.pin, left: pos.x, top: pos.y }}
             title={comment.text}
           >
             {getGlobalIndex(comment)}
@@ -1217,15 +1346,15 @@ export function FeedbackOverlay({
             </div>
           )}
 
-          {/* Submit Section */}
+          {/* Submit Section — 2.6: enabled with overall direction or comments */}
           <div style={styles.submitSection}>
             <button
               style={{
                 ...styles.submitButton,
-                ...(state.comments.length === 0 ? styles.submitButtonDisabled : {}),
+                ...(!canSubmit ? styles.submitButtonDisabled : {}),
               }}
               onClick={openSubmitModal}
-              disabled={state.comments.length === 0}
+              disabled={!canSubmit}
             >
               Submit Feedback
             </button>
@@ -1233,27 +1362,27 @@ export function FeedbackOverlay({
         </div>
       )}
 
-      {/* Submit Modal */}
+      {/* Submit Modal — 3.1: role="dialog", aria-modal, aria-labelledby */}
       {state.showSubmitModal && (
         <div
           className={`${OVERLAY_CLASS_PREFIX}-modal`}
           style={styles.modalOverlay}
           onClick={(e) => {
             if (e.target === e.currentTarget) {
-              setState((prev) => ({ ...prev, showSubmitModal: false }));
-              setCopySuccess(false);
+              closeSubmitModal();
             }
           }}
+          onKeyDown={handleModalKeyDown}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="dl-feedback-modal-title"
         >
-          <div style={styles.modal}>
+          <div style={styles.modal} ref={modalRef}>
             <div style={styles.modalHeader}>
-              <h3 style={styles.modalTitle}>Copy Feedback</h3>
+              <h3 id="dl-feedback-modal-title" style={styles.modalTitle}>Copy Feedback</h3>
               <button
                 style={styles.modalClose}
-                onClick={() => {
-                  setState((prev) => ({ ...prev, showSubmitModal: false }));
-                  setCopySuccess(false);
-                }}
+                onClick={closeSubmitModal}
               >
                 ✕
               </button>
@@ -1271,16 +1400,20 @@ export function FeedbackOverlay({
                 Click &quot;Copy to Clipboard&quot; then paste into your terminal to share feedback with Claude.
               </div>
 
-              <div style={styles.modalPreview}>{state.formattedOutput}</div>
+              <div style={styles.modalPreview}>{formattedOutput}</div>
             </div>
 
+            {/* 2.5: Added "Clear & Start Over" button, removed auto-clear */}
             <div style={styles.modalFooter}>
               <button
+                style={styles.buttonDanger}
+                onClick={handleClearAndStartOver}
+              >
+                Clear &amp; Start Over
+              </button>
+              <button
                 style={styles.buttonSecondary}
-                onClick={() => {
-                  setState((prev) => ({ ...prev, showSubmitModal: false }));
-                  setCopySuccess(false);
-                }}
+                onClick={closeSubmitModal}
               >
                 Cancel
               </button>
@@ -1296,4 +1429,4 @@ export function FeedbackOverlay({
   );
 }
 
-export default FeedbackOverlay;
+export { FeedbackOverlay as default };

@@ -84,10 +84,10 @@ export function generateSelector(
   variantRoot: HTMLElement
 ): string {
   // Priority 1: data-testid or data-cy
-  const testId =
-    element.getAttribute('data-testid') || element.getAttribute('data-cy');
-  if (testId) {
-    return `[data-testid="${testId}"]`;
+  const testIdAttr = element.getAttribute('data-testid') ? 'data-testid' : element.getAttribute('data-cy') ? 'data-cy' : null;
+  const testId = testIdAttr ? element.getAttribute(testIdAttr) : null;
+  if (testId && testIdAttr) {
+    return `[${testIdAttr}="${testId}"]`;
   }
 
   // Priority 2: Unique ID (not auto-generated)
@@ -186,7 +186,7 @@ function generateStructuralPath(
       path.unshift(tag);
     } else {
       const index = siblings.indexOf(current) + 1;
-      path.unshift(`${tag}:nth-child(${index})`);
+      path.unshift(`${tag}:nth-of-type(${index})`);
     }
 
     current = parent;
@@ -253,8 +253,7 @@ function getElementLabel(element: HTMLElement): string {
   if (tag === 'input' || tag === 'select' || tag === 'textarea') {
     const name =
       element.getAttribute('name') ||
-      element.getAttribute('placeholder') ||
-      element.getAttribute('aria-label');
+      element.getAttribute('placeholder');
     if (name) {
       return `${capitalizeTag(tag)}: ${name}`;
     }
@@ -387,9 +386,7 @@ export function isOverlayElement(element: HTMLElement): boolean {
 
   while (current) {
     if (
-      current.className &&
-      typeof current.className === 'string' &&
-      current.className.includes(OVERLAY_CLASS_PREFIX)
+      current.getAttribute('class')?.includes(OVERLAY_CLASS_PREFIX)
     ) {
       return true;
     }
