@@ -52,7 +52,7 @@ Defined in `skills/design-lab/SKILL.md`:
 4. **Present** — Output lab URL; never start the dev server (it blocks forever)
 5. **Feedback** — Collect via interactive overlay (primary) or manual AskUserQuestion (fallback)
 6. **Synthesize** — Create Variant F combining best elements; cap at 3 iterations
-7. **Final Preview** — Show winning design at `/__design_preview`; before/after for redesigns
+7. **Final Preview** — Show winning design at `/design-preview`; before/after for redesigns
 8. **Finalize** — Delete all temp files, generate `DESIGN_PLAN.md` and `DESIGN_MEMORY.md`
 
 Abort at any phase triggers immediate cleanup with no plan generated.
@@ -71,8 +71,8 @@ The feedback system has two representations that **must stay in sync**:
 
 ### Created During Sessions (auto-cleaned on finalize or abort)
 - `.claude-design/` — Variants, preview, design brief, run log
-- `app/__design_lab/` or `pages/__design_lab.tsx` — Lab route in user's project
-- `app/__design_preview/` or `pages/__design_preview.tsx` — Preview route
+- `app/design-lab/` or `pages/design-lab.tsx` — Lab route in user's project
+- `app/design-preview/` or `pages/design-preview.tsx` — Preview route
 - `FeedbackOverlay.tsx` copied into the route directory (not from `.claude-design/`)
 
 ### Permanent Outputs (kept after finalization)

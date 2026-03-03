@@ -1,69 +1,53 @@
-# Design and Refine
+# Design Lab
 
-Generate UI design variations, collect feedback, synthesize the best elements, and iterate to confident design decisions.
+A Claude Code plugin that generates 5 distinct UI design variations, collects your feedback via an interactive overlay, and iterates until you land on the perfect design — then produces an implementation plan.
 
 ## Installation
 
-### As a Claude Code Plugin
 ```bash
-claude plugin add /path/to/design-and-refine
+# Install directly from GitHub
+claude plugin add seangjr/design-lab
+
+# Or install from a local clone
+git clone https://github.com/seangjr/design-lab.git
+claude plugin add ./design-lab
 ```
 
-### Development
-```bash
-git clone https://github.com/khaeli/design-and-refine.git
-claude --plugin-dir ./design-and-refine
+## Quick Start
+
+Open Claude Code inside any supported project and run:
+
 ```
-
-## Commands
-
-### `/design-and-refine:start [target]`
-
-Start a design and refine session.
-
-**Arguments:**
-- `target` (optional): Component or page to design/redesign
-
-**Example:**
-```
-/design-and-refine:start CheckoutSummary
 /design-and-refine:start
 ```
 
-### `/design-and-refine:cleanup`
+That's it. The plugin detects your framework, styling system, and existing design tokens automatically.
 
-Remove all temporary design lab files.
+You can also pass a specific target:
+
+```
+/design-and-refine:start CheckoutSummary
+/design-and-refine:start src/components/Hero.tsx
+/design-and-refine:start /dashboard
+```
 
 ## How It Works
 
-1. **Preflight**: Detects framework, package manager, styling system
-2. **Style Inference**: Reads your existing design tokens and patterns
-3. **Interview**: Asks about requirements, pain points, and direction
-4. **Generate**: Creates 5 distinct variations using your project's visual language
-5. **Review**: Preview variants side-by-side at `/__design_lab`
-6. **Feedback**: Tell me what you like about each variant
-7. **Synthesize**: Creates a refined version combining the best elements
-8. **Iterate**: Repeat until you're confident
-9. **Finalize**: Cleans up temp files, produces `DESIGN_PLAN.md`
+1. **Preflight** — Detects your framework, package manager, and styling system
+2. **Interview** — Asks about requirements, pain points, and design direction
+3. **Generate** — Creates 5 variations exploring different design axes (structure, hierarchy, rhythm, interaction, expression) with motion micro-interactions
+4. **Review** — Opens a temporary design lab route in your project to preview all variants side-by-side
+5. **Feedback** — Collects your thoughts via an interactive Figma-like overlay
+6. **Synthesize** — Combines the best elements into a refined version
+7. **Iterate** — Repeat feedback and synthesis up to 3 times until you're confident
+8. **Finalize** — Cleans up all temp files and outputs a `DESIGN_PLAN.md` you can implement
 
-## Architecture Note
+## Commands
 
-`FeedbackOverlay.tsx` is the **canonical self-contained source**. It contains all types, utilities, and styles inline for maximum portability — copy this single file to any React project and it works.
-
-The modular files (`types.ts`, `selector-utils.ts`, `format-utils.ts`, `index.ts`) are **reference implementations** that mirror the inlined code for development and testing. Changes should be made to BOTH the self-contained file and the modular files.
-
-To check for divergence, run:
-```bash
-# TODO: sync-check.sh compares inlined functions against modular files
-./scripts/sync-check.sh
-```
-
-## Examples
-
-See the [`examples/`](./examples) directory for sample files:
-- [`design-brief.json`](./examples/design-brief.json) — Sample design brief input
-- [`DESIGN_PLAN.md`](./examples/DESIGN_PLAN.md) — Filled-in implementation plan
-- [`DESIGN_MEMORY.md`](./examples/DESIGN_MEMORY.md) — Filled-in design memory
+| Command | Description |
+|---|---|
+| `/design-and-refine:start [target]` | Start a design session. Target can be a component name, file path, or route. |
+| `/design-and-refine:cleanup` | Remove leftover temporary files from a previous session. |
 
 ## Supported Frameworks
 
@@ -75,31 +59,38 @@ See the [`examples/`](./examples) directory for sample files:
 
 ## Supported Styling
 
-### Primary
-- **shadcn/ui + Tailwind CSS** — expected default, optimized path
+| Tier | Systems |
+|---|---|
+| **Primary** | shadcn/ui + Tailwind CSS (optimized path) |
+| **Fallback** | CSS Modules, Material UI, Chakra UI, Ant Design, styled-components, Emotion |
+| **Animation** | Motion (`motion/react`) preferred, CSS transitions as fallback |
 
-### Fallback
-- CSS Modules
-- Material UI
-- Chakra UI
-- Ant Design
-- styled-components
-- Emotion
+## Configuration
 
-### Animation Library
-- **Motion** (`import from "motion/react"`) — micro-interactions woven into every variant axis
-- CSS transitions as fallback when Motion is not installed
+Set via environment variables or `.claude-design/config.json`:
 
-## Files Created
+| Variable | Default | Description |
+|---|---|---|
+| `DESIGN_AUTO_IMPLEMENT` | `false` | Immediately implement the plan after finalization |
+| `DESIGN_KEEP_LAB` | `false` | Keep temp files until you run `/design-and-refine:cleanup` |
+| `DESIGN_MEMORY_PATH` | `DESIGN_MEMORY.md` | Custom location for the Design Memory file |
 
-### Temporary (cleaned up on completion or abort)
-- `.claude-design/` - All temporary variants and previews
-- `app/__design_lab/` or `pages/__design_lab.tsx` - Lab route
-- `app/__design_preview/` or `pages/__design_preview.tsx` - Preview route
+## Output Files
 
-### Permanent (kept after finalization)
-- `DESIGN_PLAN.md` - Implementation plan for the chosen design
-- `DESIGN_MEMORY.md` - Reusable style decisions for future runs
+After a session completes, you get two files:
+
+- **`DESIGN_PLAN.md`** — Step-by-step implementation plan for the chosen design
+- **`DESIGN_MEMORY.md`** — Captured style decisions that future sessions can reuse
+
+All temporary files (`.claude-design/`, lab routes, preview routes) are automatically cleaned up.
+
+## Examples
+
+See [`examples/`](./examples) for sample outputs:
+
+- [`design-brief.json`](./examples/design-brief.json) — Sample design brief
+- [`DESIGN_PLAN.md`](./examples/DESIGN_PLAN.md) — Sample implementation plan
+- [`DESIGN_MEMORY.md`](./examples/DESIGN_MEMORY.md) — Sample design memory
 
 ## License
 

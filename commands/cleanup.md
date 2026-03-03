@@ -23,10 +23,10 @@ Removes all temporary files and directories created during design exploration:
    - Run logs
 
 2. **Temporary routes:**
-   - `app/__design_lab/` (Next.js App Router)
-   - `app/__design_preview/` (Next.js App Router)
-   - `pages/__design_lab.tsx` (Next.js Pages Router)
-   - `pages/__design_preview.tsx` (Next.js Pages Router)
+   - `app/design-lab/` (Next.js App Router)
+   - `app/design-preview/` (Next.js App Router)
+   - `pages/design-lab.tsx` (Next.js Pages Router)
+   - `pages/design-preview.tsx` (Next.js Pages Router)
 
 3. **Any App.tsx modifications** (for Vite projects without routers)
 
@@ -42,7 +42,7 @@ When this command is invoked:
 
 **Safety rules:**
 - ONLY delete files inside `.claude-design/`
-- ONLY delete route files that match the plugin's naming pattern (`__design_lab`, `__design_preview`)
+- ONLY delete route files that match the plugin's naming pattern (`design-lab`, `design-preview`)
 - Always confirm with the user before deleting
 - Never delete user-authored files
 
@@ -50,7 +50,7 @@ When this command is invoked:
 
 For Vite projects without a router, the design lab adds a conditional render to `App.tsx`. During cleanup:
 
-1. Check if `App.tsx` was modified by looking for `__design_lab` or `design_lab=true` references
+1. Check if `App.tsx` was modified by looking for `design-lab` or `design_lab=true` references
 2. If found, check for `.claude-design/app-tsx-backup` — if it exists, restore from backup
 3. If no backup exists, remove only the design lab conditional block:
    - Remove the import of the design lab component

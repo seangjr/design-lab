@@ -13,12 +13,12 @@ if [ -d ".claude-design" ]; then
 fi
 
 # Check for leftover route files (Next.js)
-if [ -d "app/__design_lab" ] || [ -d "app/__design_preview" ]; then
+if [ -d "app/design-lab" ] || [ -d "app/design-preview" ]; then
     echo "[Design Lab] Warning: Temporary route directories found in app/"
     warnings=$((warnings + 1))
 fi
 
-if [ -f "pages/__design_lab.tsx" ] || [ -f "pages/__design_preview.tsx" ]; then
+if [ -f "pages/design-lab.tsx" ] || [ -f "pages/design-preview.tsx" ]; then
     echo "[Design Lab] Warning: Temporary route files found in pages/"
     warnings=$((warnings + 1))
 fi
@@ -36,7 +36,7 @@ fi
 
 # Check if temp files are git-tracked
 if command -v git &> /dev/null && git rev-parse --is-inside-work-tree &> /dev/null 2>&1; then
-    tracked_temp=$(git ls-files --cached .claude-design app/__design_lab app/__design_preview pages/__design_lab.tsx pages/__design_preview.tsx 2>/dev/null)
+    tracked_temp=$(git ls-files --cached .claude-design app/design-lab app/design-preview pages/design-lab.tsx pages/design-preview.tsx 2>/dev/null)
     if [ -n "$tracked_temp" ]; then
         echo "[Design Lab] WARNING: Temporary design files are tracked by git!"
         echo "$tracked_temp" | while read -r file; do

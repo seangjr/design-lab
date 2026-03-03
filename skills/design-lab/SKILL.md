@@ -13,7 +13,7 @@ This skill implements a complete design exploration workflow: interview, generat
 - User confirms final design → cleanup, then generate plan
 - User aborts/cancels → cleanup immediately, no plan generated
 
-**Never leave `.claude-design/` or `__design_lab` routes behind.** If the user says "cancel", "abort", "stop", or "nevermind" at any point, confirm and then delete all temporary artifacts.
+**Never leave `.claude-design/` or `design-lab` routes behind.** If the user says "cancel", "abort", "stop", or "nevermind" at any point, confirm and then delete all temporary artifacts.
 
 ---
 
@@ -378,7 +378,7 @@ Create all files under `.claude-design/`:
 
 **Required Files in Route Directory:**
 ```
-app/design-lab/           # or app/__design_lab/ if underscores work
+app/design-lab/           # or app/design-lab/ if underscores work
 ├── page.tsx              # Main lab page with variants
 └── FeedbackOverlay.tsx   # Self-contained overlay component (copy from templates)
 ```
@@ -393,13 +393,13 @@ app/design-lab/           # or app/__design_lab/ if underscores work
 ### Route Integration
 
 **Next.js App Router:**
-Create `app/__design_lab/page.tsx` that imports from `.claude-design/lab/`
+Create `app/design-lab/page.tsx` that imports from `.claude-design/lab/`
 
 **Next.js Pages Router:**
-Create `pages/__design_lab.tsx` that imports from `.claude-design/lab/`
+Create `pages/design-lab.tsx` that imports from `.claude-design/lab/`
 
 **Vite React:**
-- If React Router exists: add route to `/__design_lab`
+- If React Router exists: add route to `/design-lab`
 - If no router: create a conditional render in `App.tsx` based on `?design_lab=true` query param
 
 **Other frameworks:**
@@ -732,7 +732,7 @@ When outputting the lab URL, infer the correct port:
 
    To view them:
    1. Make sure your dev server is running (run `pnpm dev` if not)
-   2. Open: http://localhost:3000/__design_lab
+   2. Open: http://localhost:3000/design-lab
 
    Take your time reviewing the variants side-by-side, then come back and tell me:
    - Which variant wins (A-E)
@@ -765,7 +765,7 @@ I've generated 5 design variants in `.claude-design/lab/`
 
 To view and provide feedback:
 1. Make sure your dev server is running (run `pnpm dev` if not)
-2. Open: http://localhost:3000/__design_lab
+2. Open: http://localhost:3000/design-lab
 
 **To add feedback:**
 1. Click the "Add Feedback" button (bottom-right corner)
@@ -881,7 +881,7 @@ Based on the user's feedback about what they liked from each variant:
    - Keep 1-2 of the original variants that were closest for comparison
    - Remove variants that had nothing the user liked
 
-3. **Update the `/__design_lab` route** to show the new arrangement
+3. **Update the `/design-lab` route** to show the new arrangement
 
 4. **Ask for feedback again:**
 
@@ -918,7 +918,7 @@ Once user is satisfied:
    └── FinalDesign.tsx             # The winning design
    ```
 
-2. Create route at `/__design_preview`
+2. Create route at `/design-preview`
 
 3. For redesigns, include before/after comparison:
    - Toggle switch or split view
@@ -956,7 +956,7 @@ When abort is detected:
 
 2. **If confirmed, clean up immediately:**
    - Delete `.claude-design/` directory entirely
-   - Delete temporary route files (`app/__design_lab/`, etc.)
+   - Delete temporary route files (`app/design-lab/`, etc.)
    - Do NOT generate any implementation plan
    - Do NOT update Design Memory
 
@@ -974,10 +974,10 @@ When user confirms (selected "Yes, finalize it"):
 Delete all temporary files:
 - Remove `.claude-design/` directory entirely
 - Remove temporary route files:
-  - `app/__design_lab/` (Next.js App Router)
-  - `pages/__design_lab.tsx` (Next.js Pages Router)
-  - `app/__design_preview/`
-  - `pages/__design_preview.tsx`
+  - `app/design-lab/` (Next.js App Router)
+  - `pages/design-lab.tsx` (Next.js Pages Router)
+  - `app/design-preview/`
+  - `pages/design-preview.tsx`
   - Revert any `App.tsx` modifications (Vite)
 
 **Safety rules:**
@@ -1132,10 +1132,10 @@ If updating existing file:
 2. If not, temporarily add the path and note for cleanup
 3. If Tailwind v4: check for `@import` vs `@tailwind` directive differences
 
-### Reserved `__` Prefix Conflicts
-1. Some frameworks treat `__` prefixed routes specially
-2. If `__design_lab` fails, try `_design_lab` or `design-lab-temp`
-3. Document the chosen prefix in `.claude-design/run-log.md`
+### Route Name Conflicts
+1. If `design-lab` conflicts with an existing user route, try `design-lab-temp`
+2. Document the chosen name in `.claude-design/run-log.md`
+3. Note: never use `_` or `__` prefixed folders — Next.js App Router treats these as private folders excluded from routing
 
 ### ESLint/Prettier Blocking Build
 1. Generated code should follow project's existing lint rules
@@ -1153,8 +1153,8 @@ If updating existing file:
 
 If a previous session crashed or was interrupted:
 1. Check for `.claude-design/` directory — delete if found
-2. Check for `__design_lab` routes — delete if found
-3. Check `app/` and `pages/` for any `__design_` prefixed files
+2. Check for `design-lab` routes — delete if found
+3. Check `app/` and `pages/` for any `design-` prefixed files
 4. Check `.claude-design/run-log.md` for the session state
 5. If Vite project: check if `App.tsx` was modified (look for design lab conditional)
 6. Run `cleanup-check.sh` to verify clean state
@@ -1196,15 +1196,15 @@ const config = {
 4. Plugin asks: Interview questions (5 steps)
 5. Plugin generates: Design Brief summary
 6. Plugin creates: `.claude-design/lab/` with 5 variants
-7. Plugin creates: `app/__design_lab/page.tsx`
+7. Plugin creates: `app/design-lab/page.tsx`
 8. Plugin outputs: Lab URL and review instructions
-9. Plugin outputs: "Open http://localhost:3000/__design_lab"
+9. Plugin outputs: "Open http://localhost:3000/design-lab"
 10. User reviews variants in browser
 11. Plugin asks: "Which variant wins?"
 12. User: "Variant C, but change X and Y"
 13. Plugin refines: Updates Variant C
 14. User: "Looks good"
-15. Plugin creates: Final preview at `/__design_preview`
+15. Plugin creates: Final preview at `/design-preview`
 16. User: "Confirmed"
 17. Plugin: Deletes all temp files
 18. Plugin: Generates `DESIGN_PLAN.md`
