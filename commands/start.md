@@ -9,7 +9,7 @@ Begin an interactive design session that generates UI variations, collects your 
 ## Usage
 
 ```
-/design-and-refine:start [target]
+/design-lab:start [target]
 ```
 
 **Arguments:**
@@ -46,6 +46,6 @@ Begin by running the preflight detection, then start the interview process. Use 
 - **Empty**: prompt user for target in Step 1.1
 
 Examples:
-- `/design-and-refine:start CheckoutSummary` → targetName = "CheckoutSummary"
-- `/design-and-refine:start src/components/Checkout.tsx` → targetPath = "src/components/Checkout.tsx", targetName = "Checkout"
-- `/design-and-refine:start /checkout` → find route handler, targetName = "Checkout"
+- `/design-lab:start CheckoutSummary` → targetName = "CheckoutSummary"
+- `/design-lab:start src/components/Checkout.tsx` → targetPath = "src/components/Checkout.tsx", targetName = "Checkout"
+- `/design-lab:start /checkout` → find route handler, targetName = "Checkout"

@@ -16,8 +16,8 @@ claude plugin add /path/to/design-lab
 claude --plugin-dir ./design-lab
 
 # Slash commands (invoked inside Claude Code sessions)
-/design-and-refine:start [target]   # Start a design session
-/design-and-refine:cleanup          # Remove leftover temp files
+/design-lab:start [target]   # Start a design session
+/design-lab:cleanup          # Remove leftover temp files
 ```
 
 The cleanup script (`scripts/cleanup-check.sh`) runs automatically on session end via `hooks/hooks.json` to warn about leftover temp files.
@@ -86,7 +86,7 @@ Set via environment variables or `.claude-design/config.json`:
 | Variable | Default | Effect |
 |---|---|---|
 | `DESIGN_AUTO_IMPLEMENT` | `false` | Immediately implement the plan after finalization |
-| `DESIGN_KEEP_LAB` | `false` | Skip auto-cleanup; require manual `/design-and-refine:cleanup` |
+| `DESIGN_KEEP_LAB` | `false` | Skip auto-cleanup; require manual `/design-lab:cleanup` |
 | `DESIGN_MEMORY_PATH` | `DESIGN_MEMORY.md` | Custom location for Design Memory file |
 
 ## Supported Targets

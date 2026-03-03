@@ -1,7 +1,7 @@
 # Design Memory
 
 > This file captures reusable design decisions and patterns for this project.
-> It's read by the Design and Refine plugin to skip redundant questions and ensure consistency.
+> It's read by the Design Lab plugin to skip redundant questions and ensure consistency.
 
 ## Brand Tone
 
@@ -174,4 +174,4 @@
 
 ---
 
-*Maintained by Design and Refine plugin*
+*Maintained by Design Lab plugin*

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Design and Refine Plugin - Cleanup Check Script
+# Design Lab Plugin - Cleanup Check Script
 # This runs on session end to check for leftover temporary files
 
 warnings=0
@@ -8,7 +8,7 @@ warnings=0
 # Check if .claude-design directory exists in current project
 if [ -d ".claude-design" ]; then
     echo "[Design Lab] Warning: Temporary design files found in .claude-design/"
-    echo "[Design Lab] Run '/design-and-refine:cleanup' to remove them, or delete manually."
+    echo "[Design Lab] Run '/design-lab:cleanup' to remove them, or delete manually."
     warnings=$((warnings + 1))
 fi
 

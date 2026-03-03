@@ -18,7 +18,7 @@ claude plugin add ./design-lab
 Open Claude Code inside any supported project and run:
 
 ```
-/design-and-refine:start
+/design-lab:start
 ```
 
 That's it. The plugin detects your framework, styling system, and existing design tokens automatically.
@@ -26,9 +26,9 @@ That's it. The plugin detects your framework, styling system, and existing desig
 You can also pass a specific target:
 
 ```
-/design-and-refine:start CheckoutSummary
-/design-and-refine:start src/components/Hero.tsx
-/design-and-refine:start /dashboard
+/design-lab:start CheckoutSummary
+/design-lab:start src/components/Hero.tsx
+/design-lab:start /dashboard
 ```
 
 ## How It Works
@@ -46,8 +46,8 @@ You can also pass a specific target:
 
 | Command | Description |
 |---|---|
-| `/design-and-refine:start [target]` | Start a design session. Target can be a component name, file path, or route. |
-| `/design-and-refine:cleanup` | Remove leftover temporary files from a previous session. |
+| `/design-lab:start [target]` | Start a design session. Target can be a component name, file path, or route. |
+| `/design-lab:cleanup` | Remove leftover temporary files from a previous session. |
 
 ## Supported Frameworks
 
@@ -72,7 +72,7 @@ Set via environment variables or `.claude-design/config.json`:
 | Variable | Default | Description |
 |---|---|---|
 | `DESIGN_AUTO_IMPLEMENT` | `false` | Immediately implement the plan after finalization |
-| `DESIGN_KEEP_LAB` | `false` | Keep temp files until you run `/design-and-refine:cleanup` |
+| `DESIGN_KEEP_LAB` | `false` | Keep temp files until you run `/design-lab:cleanup` |
 | `DESIGN_MEMORY_PATH` | `DESIGN_MEMORY.md` | Custom location for the Design Memory file |
 
 ## Output Files

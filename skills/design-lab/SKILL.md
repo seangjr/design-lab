@@ -383,7 +383,7 @@ app/design-lab/           # or app/design-lab/ if underscores work
 └── FeedbackOverlay.tsx   # Self-contained overlay component (copy from templates)
 ```
 
-**Template Source:** `design-and-refine/templates/feedback/FeedbackOverlay.tsx`
+**Template Source:** `design-lab/templates/feedback/FeedbackOverlay.tsx`
 
 **Why this approach:**
 - `.claude-design/` paths can fail due to bundler configurations
@@ -1183,7 +1183,7 @@ const config = {
 ### Behavior
 
 - `DESIGN_AUTO_IMPLEMENT=true`: After finalization, immediately start implementing the DESIGN_PLAN.md
-- `DESIGN_KEEP_LAB=true`: Skip automatic cleanup; user must run `/design-and-refine:cleanup` manually
+- `DESIGN_KEEP_LAB=true`: Skip automatic cleanup; user must run `/design-lab:cleanup` manually
 - `DESIGN_MEMORY_PATH`: Custom location for Design Memory file (relative to project root)
 
 ---

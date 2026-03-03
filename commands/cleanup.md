@@ -1,15 +1,15 @@
 ---
-description: Remove all temporary design lab files created during a design-and-refine session
+description: Remove all temporary design lab files created during a design-lab session
 ---
 
 # Cleanup Command
 
-Manually clean up all temporary files created during a design-and-refine session.
+Manually clean up all temporary files created during a design-lab session.
 
 ## Usage
 
 ```
-/design-and-refine:cleanup
+/design-lab:cleanup
 ```
 
 ## What This Does
