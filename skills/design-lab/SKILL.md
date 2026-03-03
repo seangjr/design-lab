@@ -39,8 +39,25 @@ Check for config files:
 - `astro.config.mjs` → **Astro**
 
 ### Styling System Detection
-Check `package.json` dependencies and config files:
-- `tailwind.config.js` or `tailwind.config.ts` → **Tailwind CSS**
+
+#### Primary: shadcn/ui + Tailwind CSS (Expected Default)
+Check for shadcn/ui first — this is the expected primary styling system:
+- `components.json` in project root → **shadcn/ui confirmed**
+- `src/components/ui/` or `components/ui/` directory → component location
+- `@radix-ui/*` in `package.json` dependencies → Radix UI primitives
+- `cn()` or `clsx()` utility function → class merging pattern
+- `tailwind.config.js` or `tailwind.config.ts` → **Tailwind CSS** (required for shadcn/ui)
+
+If detected:
+- Use existing shadcn components (Button, Input, Card, Dialog, etc.) in variants
+- Follow the project's `cn()` utility pattern for class merging
+- Reference `components.json` for style configuration (tailwind prefix, aliases)
+- Do NOT create competing component primitives
+
+If no styling system detected, **default to Tailwind utility classes**.
+
+#### Fallback: Other Styling Systems
+If shadcn/ui + Tailwind is not detected, check for:
 - `@mui/material` in dependencies → **Material UI**
 - `@chakra-ui/react` in dependencies → **Chakra UI**
 - `antd` in dependencies → **Ant Design**
@@ -48,18 +65,21 @@ Check `package.json` dependencies and config files:
 - `@emotion/react` in dependencies → **Emotion**
 - `.css` or `.module.css` files → **CSS Modules**
 
-### shadcn/ui Detection
-Check for shadcn/ui component library:
-- `components.json` in project root → **shadcn/ui confirmed**
-- `src/components/ui/` or `components/ui/` directory → component location
-- `@radix-ui/*` in `package.json` dependencies → Radix UI primitives
-- `cn()` or `clsx()` utility function → class merging pattern
+These systems are supported but considered fallback paths. Variants will use whatever system the project has, but the plugin is optimized for the shadcn/ui + Tailwind primary path.
 
-If detected:
-- Use existing shadcn components (Button, Input, Card, Dialog, etc.) in variants
-- Follow the project's `cn()` utility pattern for class merging
-- Reference `components.json` for style configuration (tailwind prefix, aliases)
-- Do NOT create competing component primitives
+### Animation Library Detection
+Check `package.json` dependencies for animation libraries:
+- `"motion"` in dependencies → **Motion library** (preferred)
+  - Import from `"motion/react"`: `motion.div`, `AnimatePresence`, `useReducedMotion`
+- `"framer-motion"` in dependencies → **Legacy Framer Motion** (recommend migration to `motion`)
+  - Same API, use `import from "motion/react"` when migrating
+- Neither detected → **CSS-only animations**; recommend `motion` library in final Design Plan
+
+When Motion library is detected, all variants should use:
+- `import { motion, AnimatePresence, useReducedMotion } from "motion/react"`
+- `motion.div`, `motion.button`, etc. for animated elements
+- `AnimatePresence` for enter/exit animations on conditional renders
+- `useReducedMotion()` to respect user accessibility preferences
 
 ### Design Memory Check
 Look for existing Design Memory file:
@@ -86,6 +106,7 @@ Offer a "Skip interview (use Design Memory)" fast-path option at the start.
 **DO NOT use generic/predefined styles. Extract visual language from the project:**
 
 **If Tailwind detected**, read `tailwind.config.js` or `tailwind.config.ts`:
+This is the expected primary path.
 ```javascript
 // Extract and use:
 theme.colors      // Color palette
@@ -105,7 +126,7 @@ theme.boxShadow   // Elevation system
 }
 ```
 
-**If UI library detected** (MUI, Chakra, Ant), read the theme configuration:
+**If fallback UI library detected** (MUI, Chakra, Ant), read the theme configuration:
 - MUI: `theme.ts` or `createTheme()` call
 - Chakra: `theme/index.ts` or `extendTheme()` call
 - Ant: `ConfigProvider` theme prop
@@ -309,7 +330,9 @@ After the interview, create a structured Design Brief as JSON and save to `.clau
   },
   "framework": "nextjs-app",
   "packageManager": "pnpm",
-  "stylingSystem": "tailwind"
+  "stylingSystem": "tailwind",
+  "componentLibrary": "shadcn",
+  "animationLibrary": "motion"
 }
 ```
 
@@ -390,7 +413,7 @@ Create the most appropriate temporary route for the detected framework.
 - **UX**: Nielsen's heuristics, cognitive load reduction, progressive disclosure
 - **Component behavior**: Button states, form anatomy, card structure
 - **Interaction**: Feedback patterns, state handling, optimistic updates
-- **Motion**: Timing (150-300ms), easing (ease-out entrances, ease-in exits)
+- **Motion**: Use `motion` library (`import from "motion/react"`) for all animations. Timing tiers: micro 100-150ms, transitions 200-300ms, page 300-400ms, stagger 30-50ms between items. Prefer `type: "spring"` with `bounce: 0.15-0.25` over CSS easing for interactive elements. Always wrap conditional renders in `AnimatePresence`. Always respect `prefers-reduced-motion` via `useReducedMotion()`.
 - **Accessibility**: Focus states, ARIA patterns, touch targets (44px min)
 
 **Infer visual styles from the project:**
@@ -408,26 +431,101 @@ Each variant MUST explore a different design axis. Do not create minor variation
 - Explore different organizational models: list vs cards vs table vs timeline vs masonry
 - Focus on information architecture and content grouping
 - Test different navigation patterns within the component/page
+- **Motion integration:** Use `AnimatePresence` for enter/exit transitions between content sections. Stagger child elements with `staggerChildren: 0.05`. Apply `layout` prop for smooth reflow when content changes.
+  ```tsx
+  <motion.div layout transition={{ layout: { type: "spring", bounce: 0.2 } }}>
+    <AnimatePresence mode="wait">
+      {sections.map((section, i) => (
+        <motion.section
+          key={section.id}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0, transition: { delay: i * 0.05 } }}
+          exit={{ opacity: 0 }}
+        />
+      ))}
+    </AnimatePresence>
+  </motion.div>
+  ```
 
 **Variant B: Hierarchy** — What gets visual emphasis
 - Data-forward vs action-forward layouts
 - Experiment with which elements are primary, secondary, tertiary
 - Test different visual weight distributions
+- **Motion integration:** Use `layoutId` for shared element transitions between states. Add scale micro-interactions on CTAs with `whileHover={{ scale: 1.02 }}` and `whileTap={{ scale: 0.98 }}`. Prefer spring physics for natural feel.
+  ```tsx
+  <motion.button
+    whileHover={{ scale: 1.02 }}
+    whileTap={{ scale: 0.98 }}
+    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+  />
+  <motion.div layoutId="active-indicator" className="absolute inset-0 bg-primary/10 rounded-md" />
+  ```
 
 **Variant C: Rhythm** — Spatial density and pacing
 - Compact vs spacious versions using the project's spacing tokens
 - Symmetrical vs asymmetric layouts
 - Dense data display vs breathing room
+- **Motion integration:** Match stagger timing to density — compact layouts use faster timing (30ms stagger, 150ms duration) while spacious layouts use slower timing (60ms stagger, 250ms duration). Use `layout` prop for smooth filter/sort reflow animations.
+  ```tsx
+  const density = isCompact
+    ? { stagger: 0.03, duration: 0.15 }
+    : { stagger: 0.06, duration: 0.25 };
+
+  <motion.div layout transition={{ duration: density.duration }}>
+    {items.map((item, i) => (
+      <motion.div
+        key={item.id}
+        layout
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1, transition: { delay: i * density.stagger } }}
+      />
+    ))}
+  </motion.div>
+  ```
 
 **Variant D: Interaction** — Manipulation paradigm
 - Inline editing vs modal vs side panel vs drawer vs command palette
 - Different form patterns (wizard vs single-page vs inline)
 - Hover, click, and keyboard interaction models
+- **Motion integration:** Richest motion variant — use `AnimatePresence mode="wait"` for panel/drawer transitions, drag gestures with `drag` prop, `useMotionValue` + `useTransform` for scroll-linked effects, and spring-based dialog entrances.
+  ```tsx
+  const x = useMotionValue(0);
+  const opacity = useTransform(x, [-100, 0, 100], [0.5, 1, 0.5]);
+
+  <AnimatePresence mode="wait">
+    {isOpen && (
+      <motion.div
+        key="panel"
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        onDragEnd={(_, info) => { if (info.offset.x > 100) close(); }}
+      />
+    )}
+  </AnimatePresence>
+  ```
 
 **Variant E: Expression** — Personality level
 - Neutral/functional vs distinctive/branded
 - Explore different uses of color, typography, and motion
 - Minimal vs expressive decoration
+- **Motion integration:** Neutral expression uses minimal opacity-only transitions (100-150ms). Expressive expression uses spring physics, parallax effects, hover reveals, SVG path morphs, and `useSpring` for organic feel.
+  ```tsx
+  // Neutral: subtle opacity only
+  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }} />
+
+  // Expressive: springs, parallax, hover reveals
+  const springY = useSpring(0, { stiffness: 300, damping: 20 });
+
+  <motion.div
+    style={{ y: springY }}
+    whileHover={{ scale: 1.03, rotateZ: 1 }}
+    transition={{ type: "spring", bounce: 0.25 }}
+  />
+  ```
 
 ### Variant Distinctiveness Checklist
 
@@ -532,10 +630,71 @@ export default function DesignLabPage() {
 - Default, Hover, Focus, Active, Disabled, Loading, Error, Empty
 - See DESIGN_PRINCIPLES "State Handling" section
 
-**Motion:**
-- Use appropriate timing: 150-200ms for micro-interactions, 200-300ms for transitions
-- Use ease-out for entrances, ease-in for exits
-- Respect `prefers-reduced-motion`
+**Motion (using `motion` library):**
+
+Import patterns — always use `"motion/react"`:
+```tsx
+import { motion, AnimatePresence, useReducedMotion, useMotionValue, useTransform, useSpring, MotionConfig } from "motion/react";
+```
+
+Timing rules:
+- Micro-interactions (hover, focus, press): 100-150ms
+- Element transitions (expand, collapse, toggle): 200-300ms
+- Page/route transitions: 300-400ms
+- Stagger between list items: 30-50ms
+
+Spring defaults (prefer springs over CSS easing for interactive UI):
+- **Snappy** (buttons, toggles): `{ type: "spring", stiffness: 400, damping: 25 }`
+- **Smooth** (panels, drawers): `{ type: "spring", stiffness: 300, damping: 30 }`
+- **Bouncy** (playful elements): `{ type: "spring", stiffness: 350, damping: 15 }`
+
+Required motion patterns — every variant must include at least 3:
+
+1. **Button micro-interactions:**
+```tsx
+<motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ type: "spring", stiffness: 400, damping: 25 }} />
+```
+
+2. **Conditional content (AnimatePresence):**
+```tsx
+<AnimatePresence mode="wait">
+  {isVisible && (
+    <motion.div key="content" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ type: "spring", bounce: 0.2 }} />
+  )}
+</AnimatePresence>
+```
+
+3. **List stagger:**
+```tsx
+<motion.ul initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.04 } } }}>
+  {items.map(item => (
+    <motion.li key={item.id} variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }} />
+  ))}
+</motion.ul>
+```
+
+4. **Layout animations:**
+```tsx
+<motion.div layout transition={{ layout: { type: "spring", stiffness: 300, damping: 30 } }} />
+```
+
+5. **Reduced motion:**
+```tsx
+const shouldReduceMotion = useReducedMotion();
+<motion.div
+  initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 12 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: shouldReduceMotion ? 0.1 : 0.25 }}
+/>
+```
+
+shadcn/ui + Motion combination patterns:
+- **Dialog** spring entrance: wrap `DialogContent` with `motion.div` using `initial={{ opacity: 0, scale: 0.95 }}` `animate={{ opacity: 1, scale: 1 }}` with spring transition
+- **Accordion** height animation: `AnimatePresence` with `motion.div` measuring content height via `useMotionValue`
+- **Card** hover lift: `motion.div` with `whileHover={{ y: -2, shadow: "0 10px 25px rgba(0,0,0,0.1)" }}`
+- **Toast** entrance: `motion.div` with `initial={{ opacity: 0, y: 50 }}` spring animate
+- **Tabs** content switch: `AnimatePresence mode="wait"` on tab panels with cross-fade
+- **Dropdown** items stagger: `staggerChildren: 0.03` with `initial={{ opacity: 0, y: -4 }}`
 
 ### Next.js App Router: Component Boundaries
 
@@ -883,6 +1042,15 @@ Create `DESIGN_PLAN.md` in the project root:
 - [Any new tokens to add]
 - [Existing tokens to use]
 
+## Motion Specifications
+- **Library:** `motion` (import from `"motion/react"`)
+- **Enter transitions:** [e.g., fade + slide up, spring scale]
+- **Exit transitions:** [e.g., fade out, slide in direction of dismissal]
+- **Micro-interactions:** [e.g., button scale on hover/tap, card lift on hover]
+- **Stagger patterns:** [e.g., list items 40ms delay, grid items 50ms delay]
+- **Spring configs:** [e.g., snappy: stiffness 400/damping 25, smooth: 300/30]
+- **Reduced motion fallback:** Opacity-only transitions, no springs/slides, instant state changes
+
 ---
 
 *Generated by Design Variations plugin*
@@ -919,14 +1087,15 @@ If new file:
 
 ## Interaction Patterns
 - **Forms:** [validation approach, layout]
-- **Modals/Drawers:** [when to use which]
-- **Tables/Lists:** [preferred patterns]
-- **Feedback:** [toast, inline, etc.]
+- **Modals/Drawers:** [when to use which, motion entrance patterns]
+- **Tables/Lists:** [preferred patterns, layout animation on sort/filter]
+- **Feedback:** [toast with motion entrance, inline, etc.]
+- **Animation Library:** `motion` (import from `"motion/react"`) — spring-based micro-interactions on interactive elements
 
 ## Accessibility Rules
 - **Focus:** [visible focus approach]
 - **Labels:** [labeling conventions]
-- **Motion:** [reduced motion support]
+- **Motion:** Use `useReducedMotion()` from `"motion/react"` — replace springs/slides with opacity-only transitions when user prefers reduced motion
 
 ## Repo Conventions
 - **Component structure:** [file organization]

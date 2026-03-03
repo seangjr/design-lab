@@ -115,13 +115,13 @@ WCAG AA minimum: 4.5:1 for normal text, 3:1 for large text and UI components. Te
 ## Motion & Animation
 
 ### Animation Library
-Framer Motion for complex animations (layout, presence). CSS transitions for simple hover/focus states.
+Motion library (`import from "motion/react"`) for complex animations (layout, presence, springs). CSS transitions for simple hover/focus states.
 
 ### Timing Conventions
 150ms for micro-interactions (hover, focus). 200ms for element transitions (expand, collapse). 300ms for page/route transitions.
 
 ### Easing Functions
-ease-out-cubic (0.33, 1, 0.68, 1) for entrances. ease-in (0.4, 0, 1, 1) for exits. spring(1, 80, 10) for playful elements.
+Spring-based defaults preferred: snappy `{ type: "spring", stiffness: 400, damping: 25 }` for buttons/toggles, smooth `{ stiffness: 300, damping: 30 }` for panels/drawers. CSS fallback: ease-out-cubic (0.33, 1, 0.68, 1) for entrances, ease-in (0.4, 0, 1, 1) for exits.
 
 ### Reduced Motion Policy
 Replace all motion with instant state changes or simple opacity fades. Disable parallax and scroll-triggered animations entirely.

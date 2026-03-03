@@ -75,13 +75,20 @@ See the [`examples/`](./examples) directory for sample files:
 
 ## Supported Styling
 
-- Tailwind CSS
+### Primary
+- **shadcn/ui + Tailwind CSS** — expected default, optimized path
+
+### Fallback
 - CSS Modules
 - Material UI
 - Chakra UI
 - Ant Design
 - styled-components
 - Emotion
+
+### Animation Library
+- **Motion** (`import from "motion/react"`) — micro-interactions woven into every variant axis
+- CSS transitions as fallback when Motion is not installed
 
 ## Files Created
 

@@ -113,13 +113,13 @@
 ## Motion & Animation
 
 ### Animation Library
-<!-- e.g., Framer Motion, CSS transitions only, GSAP, none -->
+<!-- e.g., Motion (import from "motion/react") — preferred, CSS transitions as fallback, GSAP, none -->
 
 ### Timing Conventions
 <!-- e.g., 150ms for micro-interactions, 300ms for page transitions -->
 
 ### Easing Functions
-<!-- e.g., ease-out-cubic for entrances, ease-in for exits -->
+<!-- e.g., Spring-based preferred: snappy { stiffness: 400, damping: 25 }, smooth { stiffness: 300, damping: 30 }. CSS fallback: ease-out-cubic for entrances, ease-in for exits -->
 
 ### Reduced Motion Policy
 <!-- e.g., Replace all motion with instant/fade, disable parallax -->

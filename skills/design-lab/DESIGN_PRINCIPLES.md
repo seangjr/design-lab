@@ -663,7 +663,9 @@ const skipAnimation = Date.now() - lastTooltipTime < 300;
 **Configuration:**
 
 ```jsx
-// Framer Motion spring config
+// Motion library spring config
+import { motion } from "motion/react";
+
 const springConfig = {
   type: "spring",
   duration: 0.5,  // Overall duration
@@ -759,10 +761,10 @@ padding: 20px;
 }
 ```
 
-**Framer Motion hook:**
+**Motion library hook:**
 
 ```jsx
-import { useReducedMotion } from 'framer-motion';
+import { useReducedMotion, motion, MotionConfig } from "motion/react";
 
 function Modal({ children }) {
   const shouldReduceMotion = useReducedMotion();
@@ -775,6 +777,16 @@ function Modal({ children }) {
     >
       {children}
     </motion.div>
+  );
+}
+
+// App-wide alternative: wrap your app with MotionConfig to automatically
+// respect the user's reduced motion preference for all motion components
+function App({ children }) {
+  return (
+    <MotionConfig reducedMotion="user">
+      {children}
+    </MotionConfig>
   );
 }
 ```
@@ -1201,7 +1213,7 @@ Flag these patterns during design review:
 **For Motion & Delight:**
 
 - [Apple](https://apple.com) - Cinematic quality
-- [Framer](https://framer.com) - Motion-first
+- [Motion](https://motion.dev) - The animation library (formerly Framer Motion)
 
 ### When Generating Variants
 
@@ -1481,6 +1493,227 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 ```
 
+### shadcn/ui + Motion Micro-Interaction Patterns
+
+These patterns combine shadcn/ui components with the Motion library (`import from "motion/react"`) for polished micro-interactions. Use these as building blocks in every variant.
+
+**Wrapping shadcn components with motion:**
+
+```tsx
+import { motion } from "motion/react";
+import { Button } from "@/components/ui/button";
+
+// Create a motion-enabled version of any shadcn component
+const MotionButton = motion.create(Button);
+
+<MotionButton
+  whileHover={{ scale: 1.02 }}
+  whileTap={{ scale: 0.98 }}
+  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+>
+  Save Changes
+</MotionButton>
+```
+
+**Dialog with spring entrance:**
+
+```tsx
+import { motion, AnimatePresence } from "motion/react";
+import { Dialog, DialogContent, DialogOverlay, DialogPortal } from "@/components/ui/dialog";
+
+<Dialog open={open} onOpenChange={setOpen}>
+  <DialogPortal forceMount>
+    <AnimatePresence>
+      {open && (
+        <>
+          <DialogOverlay asChild forceMount>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50"
+            />
+          </DialogOverlay>
+          <DialogContent asChild forceMount>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ type: "spring", stiffness: 350, damping: 25 }}
+            >
+              {/* Dialog content */}
+            </motion.div>
+          </DialogContent>
+        </>
+      )}
+    </AnimatePresence>
+  </DialogPortal>
+</Dialog>
+```
+
+**Accordion height animation:**
+
+```tsx
+import { motion, AnimatePresence } from "motion/react";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+
+<AccordionContent forceMount asChild>
+  <AnimatePresence initial={false}>
+    {isOpen && (
+      <motion.div
+        key="accordion-content"
+        initial={{ height: 0, opacity: 0 }}
+        animate={{ height: "auto", opacity: 1 }}
+        exit={{ height: 0, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        style={{ overflow: "hidden" }}
+      >
+        <div className="pb-4 pt-0">{children}</div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+</AccordionContent>
+```
+
+**Card hover lift:**
+
+```tsx
+import { motion } from "motion/react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+const MotionCard = motion.create(Card);
+
+<MotionCard
+  whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(0,0,0,0.1)" }}
+  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+>
+  <CardHeader>
+    <CardTitle>Feature Card</CardTitle>
+  </CardHeader>
+  <CardContent>Content here</CardContent>
+</MotionCard>
+```
+
+**Tabs content transition:**
+
+```tsx
+import { motion, AnimatePresence } from "motion/react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+<Tabs value={activeTab} onValueChange={setActiveTab}>
+  <TabsList>
+    <TabsTrigger value="overview">Overview</TabsTrigger>
+    <TabsTrigger value="details">Details</TabsTrigger>
+  </TabsList>
+  <AnimatePresence mode="wait">
+    <motion.div
+      key={activeTab}
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -4 }}
+      transition={{ duration: 0.2 }}
+    >
+      <TabsContent value={activeTab} forceMount>
+        {/* Tab content */}
+      </TabsContent>
+    </motion.div>
+  </AnimatePresence>
+</Tabs>
+```
+
+**Staggered list items:**
+
+```tsx
+import { motion } from "motion/react";
+
+const container = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.04 } },
+};
+const item = {
+  hidden: { opacity: 0, y: 8 },
+  visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } },
+};
+
+<motion.ul variants={container} initial="hidden" animate="visible">
+  {items.map((data) => (
+    <motion.li key={data.id} variants={item} layout>
+      <Card>{/* ... */}</Card>
+    </motion.li>
+  ))}
+</motion.ul>
+```
+
+**Toast/notification entrance:**
+
+```tsx
+import { motion, AnimatePresence } from "motion/react";
+
+<AnimatePresence>
+  {toasts.map((toast) => (
+    <motion.div
+      key={toast.id}
+      layout
+      initial={{ opacity: 0, y: 50, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
+      transition={{ type: "spring", stiffness: 350, damping: 25 }}
+    >
+      <ToastCard toast={toast} />
+    </motion.div>
+  ))}
+</AnimatePresence>
+```
+
+**Shared layout animation (active indicator):**
+
+```tsx
+import { motion } from "motion/react";
+
+function TabBar({ tabs, activeTab, onSelect }) {
+  return (
+    <div className="flex gap-1 relative">
+      {tabs.map((tab) => (
+        <button key={tab.id} onClick={() => onSelect(tab.id)} className="relative px-3 py-1.5">
+          {activeTab === tab.id && (
+            <motion.div
+              layoutId="active-tab-indicator"
+              className="absolute inset-0 bg-primary/10 rounded-md"
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            />
+          )}
+          <span className="relative z-10">{tab.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+```
+
+**Skeleton-to-content transition:**
+
+```tsx
+import { motion, AnimatePresence } from "motion/react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+<AnimatePresence mode="wait">
+  {isLoading ? (
+    <motion.div key="skeleton" exit={{ opacity: 0, transition: { duration: 0.15 } }}>
+      <Skeleton className="h-32 w-full rounded-lg" />
+    </motion.div>
+  ) : (
+    <motion.div
+      key="content"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.25 }}
+    >
+      <ActualContent data={data} />
+    </motion.div>
+  )}
+</AnimatePresence>
+```
+
 ### Variable Fonts
 
 Single font file with adjustable axes:
@@ -1541,3 +1774,20 @@ Should this animate?
 ├── Hover/color change? → ease, 100-150ms
 └── Unsure? → Start without animation, add if needed
 ```
+
+### When to Use Motion Library vs CSS Transitions
+
+| Scenario | Use Motion Library | Use CSS |
+|---|---|---|
+| Button hover/focus states | | `transition: transform 0.15s ease` |
+| Conditional content (show/hide) | `AnimatePresence` + exit animations | |
+| List reordering/filtering | `layout` prop | |
+| Drag-and-drop | `drag` + gesture handlers | |
+| Simple color/opacity change | | `transition: opacity 0.2s ease` |
+| Shared element transitions | `layoutId` | |
+| Scroll-linked effects | `useMotionValue` + `useTransform` | `animation-timeline: scroll()` |
+| Spring physics / bouncy feel | `type: "spring"` | |
+| Page route transitions | `AnimatePresence mode="wait"` | View Transitions API |
+| Skeleton shimmer | | `@keyframes` + `animation` |
+
+**Rule of thumb:** If the animation involves enter/exit, layout changes, gestures, springs, or interruption — use Motion. If it's a simple state change (hover, focus, color) — use CSS.
