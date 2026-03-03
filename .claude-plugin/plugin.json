@@ -1,16 +1,16 @@
 {
-  "name": "design-and-refine",
+  "name": "design-lab",
   "description": "Generate distinct UI design variations, collect feedback, synthesize the best elements, and produce implementation plans",
   "version": "1.0.0",
   "author": {
-    "name": "Khaeli Internal",
-    "url": "https://github.com/khaeli"
+    "name": "seangjr",
+    "url": "https://github.com/seangjr"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/khaeli/design-and-refine"
+    "url": "https://github.com/seangjr/design-lab"
   },
-  "homepage": "https://github.com/khaeli/design-and-refine#readme",
+  "homepage": "https://github.com/seangjr/design-lab#readme",
   "keywords": ["design", "ui", "frontend", "prototyping", "refine", "iterate"],
   "license": "MIT",
   "configuration": {
