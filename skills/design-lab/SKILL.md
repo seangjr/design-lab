@@ -48,6 +48,19 @@ Check `package.json` dependencies and config files:
 - `@emotion/react` in dependencies → **Emotion**
 - `.css` or `.module.css` files → **CSS Modules**
 
+### shadcn/ui Detection
+Check for shadcn/ui component library:
+- `components.json` in project root → **shadcn/ui confirmed**
+- `src/components/ui/` or `components/ui/` directory → component location
+- `@radix-ui/*` in `package.json` dependencies → Radix UI primitives
+- `cn()` or `clsx()` utility function → class merging pattern
+
+If detected:
+- Use existing shadcn components (Button, Input, Card, Dialog, etc.) in variants
+- Follow the project's `cn()` utility pattern for class merging
+- Reference `components.json` for style configuration (tailwind prefix, aliases)
+- Do NOT create competing component primitives
+
 ### Design Memory Check
 Look for existing Design Memory file:
 - `docs/design-memory.md`
@@ -55,6 +68,18 @@ Look for existing Design Memory file:
 - `.claude-design/design-memory.md`
 
 If found, read it and use to prefill defaults and skip redundant questions.
+
+### Design Memory Fast Path
+
+If Design Memory exists, map fields to interview questions:
+- `Brand Tone` → Skip Step 1.3 (Brand & Style Direction)
+- `Layout & Spacing` → Pre-fill density in Step 1.3
+- `Typography` + `Color` → Pre-fill visual style inference
+- `Interaction Patterns` → Skip Step 1.2 Question 3 (Functional Inspiration)
+- `Accessibility Rules` → Pre-fill constraints in Step 1.5
+- `Repo Conventions` → Skip technical constraint detection
+
+Offer a "Skip interview (use Design Memory)" fast-path option at the start.
 
 ### Visual Style Inference (CRITICAL)
 
@@ -98,6 +123,28 @@ theme.boxShadow   // Elevation system
 ## Phase 1: Interview
 
 Use the **AskUserQuestion** tool for all interview steps. Adapt questions based on Design Memory if it exists.
+
+### Step 0: Interview Mode
+
+**Question: How thorough should the interview be?**
+- Header: "Mode"
+- Question: "How would you like to scope the design exploration?"
+- Options:
+  - "Quick (4 questions)" - Combines scope, goal, constraints, reference into 4 focused questions
+  - "Detailed (14 questions)" - Full interview covering all aspects (Recommended)
+  - "Skip (use Design Memory)" - Use existing Design Memory + ask for deviations only
+
+If "Quick" selected, combine:
+- Q1: Scope + target (component vs page, new vs redesign, file path)
+- Q2: Goal + pain points (what's wrong, what should improve)
+- Q3: Style direction + constraints (inspiration, brand feel, must-keep elements)
+- Q4: Primary user + context (who uses it, desktop vs mobile, key tasks)
+
+If "Skip" selected:
+- Verify Design Memory exists
+- Display current memory summary
+- Ask: "Any deviations from your Design Memory for this specific design?"
+- Proceed directly to Phase 2 with memory-derived brief
 
 ### Step 1.1: Scope & Target
 
@@ -357,35 +404,41 @@ Create the most appropriate temporary route for the detected framework.
 
 Each variant MUST explore a different design axis. Do not create minor variations—make them meaningfully distinct. **Use the project's existing visual language for all variants.**
 
-**Variant A: Information Hierarchy Focus**
-- Restructure content hierarchy (what's most important?)
-- Apply Gestalt proximity—group related items closer
-- One primary action per view
-- Use existing typography scale to create clear levels
+**Variant A: Structure** — How content is organized
+- Explore different organizational models: list vs cards vs table vs timeline vs masonry
+- Focus on information architecture and content grouping
+- Test different navigation patterns within the component/page
 
-**Variant B: Layout Model Exploration**
-- Try a different layout approach (card vs list vs table vs split-pane)
-- Apply card anatomy or table behavior patterns from DESIGN_PRINCIPLES
-- Consider responsive behavior at each breakpoint
-- Use the project's existing grid/layout system
+**Variant B: Hierarchy** — What gets visual emphasis
+- Data-forward vs action-forward layouts
+- Experiment with which elements are primary, secondary, tertiary
+- Test different visual weight distributions
 
-**Variant C: Density Variation**
-- If brief says "comfortable", try a more compact version
-- If brief says "compact", try a more spacious version
-- Use the project's existing spacing tokens—just apply them differently
-- Show the tradeoffs: more visible data vs easier scanning
+**Variant C: Rhythm** — Spatial density and pacing
+- Compact vs spacious versions using the project's spacing tokens
+- Symmetrical vs asymmetric layouts
+- Dense data display vs breathing room
 
-**Variant D: Interaction Model**
-- Different interaction pattern (modal vs inline vs panel vs drawer)
-- Apply feedback patterns: immediate → progress → completion
-- Implement all required states (loading, error, empty, disabled)
-- Consider optimistic updates for non-destructive actions
+**Variant D: Interaction** — Manipulation paradigm
+- Inline editing vs modal vs side panel vs drawer vs command palette
+- Different form patterns (wizard vs single-page vs inline)
+- Hover, click, and keyboard interaction models
 
-**Variant E: Expressive Direction**
-- Push the brand direction the user described in the interview
-- Explore different uses of the project's existing design tokens
-- More or less use of shadows, borders, background colors
-- Apply motion where it adds meaning (hover, focus, transitions)
+**Variant E: Expression** — Personality level
+- Neutral/functional vs distinctive/branded
+- Explore different uses of color, typography, and motion
+- Minimal vs expressive decoration
+
+### Variant Distinctiveness Checklist
+
+Before presenting variants, verify each pair differs in at least 2 of:
+- [ ] Layout structure (grid vs list vs split)
+- [ ] Visual hierarchy (what's emphasized)
+- [ ] Information density (compact vs spacious)
+- [ ] Interaction model (inline vs modal vs panel)
+- [ ] Visual expression (minimal vs branded)
+
+If any two variants are too similar, redesign one to explore a different axis.
 
 ### Lab Page Requirements
 
@@ -409,6 +462,14 @@ The Design Lab page must include:
 4. **Shared Data**:
    - All variants use the same fixture data from `data/fixtures.ts`
    - Ensures fair comparison
+
+### Fixture Data Guidelines
+
+- Use realistic data that matches production patterns (names, dates, amounts)
+- Include edge cases: empty strings, very long text, zero values, null states
+- For redesigns: mirror existing data types and structures from the current implementation
+- Include enough items to test pagination/scrolling behavior (15-20 items minimum)
+- Use consistent fake data library patterns (e.g., realistic names, not "Test User 1")
 
 5. **Feedback Overlay** (CRITICAL - NEVER OMIT):
 
@@ -476,6 +537,15 @@ export default function DesignLabPage() {
 - Use ease-out for entrances, ease-in for exits
 - Respect `prefers-reduced-motion`
 
+### Next.js App Router: Component Boundaries
+
+- The lab page (`page.tsx`) can be a Server Component for initial HTML
+- Variant components that need interactivity → 'use client' directive
+- FeedbackOverlay MUST be a Client Component ('use client')
+- Fixtures/data files should NOT have 'use client' — they can be imported by both
+- If a variant uses hooks (useState, useEffect), it MUST be a Client Component
+- Prefer Server Components for static variant shells, Client Components for interactive parts
+
 ---
 
 ## Phase 4: Present Design Lab to User
@@ -485,6 +555,13 @@ After generating the lab files, **immediately** present the lab to the user. Do 
 - Check if ports are open
 - Open a browser
 - Wait for any server response
+
+### Port Detection
+
+When outputting the lab URL, infer the correct port:
+1. Check `.env` / `.env.local` for `PORT=`
+2. Check `package.json` scripts for `--port` flags
+3. Framework defaults: Next.js → 3000, Vite → 5173, Astro → 4321, Remix → 3000
 
 ### What to Do
 
@@ -658,6 +735,14 @@ Based on the user's feedback about what they liked from each variant:
   - "Went the wrong direction" - Let me clarify what I want
 
 If "Getting closer" or "Went the wrong direction", gather more specific feedback and iterate. Support multiple synthesis passes until user is satisfied.
+
+### Synthesis Iteration Limit
+
+Cap synthesis at 3 iterations. After 3 rounds:
+- Present current state clearly
+- Offer: "Start fresh with new variants" or "Final polish pass"
+- "Start fresh" returns to Phase 3 with updated brief
+- "Final polish pass" allows one more round of minor tweaks only
 
 Then proceed to **Phase 7: Final Preview**.
 
@@ -860,39 +945,77 @@ If updating existing file:
 
 ---
 
-## Error Handling
+## Error Handling Decision Tree
 
 ### Framework Not Detected
-If framework cannot be determined:
-- Ask user: "I couldn't detect your framework. What are you using?"
-- Provide common options: Next.js, Vite, Create React App, Vue, etc.
+1. Check if `package.json` exists → if not, this isn't a JS project
+2. Check for framework configs manually
+3. Ask user: "I couldn't detect your framework. What are you using?"
+4. Provide options: Next.js, Vite, Remix, Astro, CRA, Other
 
-### Dev Server Fails
-If dev server won't start:
-- Check for port conflicts
-- Provide manual instructions
-- Suggest user starts server themselves
+### TypeScript Errors in Generated Code
+1. Check `tsconfig.json` for strict mode settings
+2. Common fixes: add missing type annotations, handle nullable types
+3. If persistent: generate `.tsx` files with `// @ts-nocheck` temporarily, note in run-log
 
-### Route Integration Fails
-If can't create temporary route:
-- Fall back to creating standalone HTML file
-- Provide instructions for manual preview
+### Tailwind Classes Not Applied
+1. Verify `content` paths in Tailwind config include `.claude-design/`
+2. If not, temporarily add the path and note for cleanup
+3. If Tailwind v4: check for `@import` vs `@tailwind` directive differences
 
-### Cleanup Interrupted
-If cleanup is interrupted:
-- Log what was deleted vs remaining
-- Provide manual cleanup instructions
-- Never leave partial state without informing user
+### Reserved `__` Prefix Conflicts
+1. Some frameworks treat `__` prefixed routes specially
+2. If `__design_lab` fails, try `_design_lab` or `design-lab-temp`
+3. Document the chosen prefix in `.claude-design/run-log.md`
+
+### ESLint/Prettier Blocking Build
+1. Generated code should follow project's existing lint rules
+2. If lint fails, fix automatically where possible
+3. For unfixable rules: add `/* eslint-disable */` at file top, note in run-log
+
+### Build Fails After Lab Generation
+1. Check for missing dependencies (imports from non-installed packages)
+2. Check for path alias issues (@ paths not resolving in .claude-design/)
+3. Verify all imports use relative paths from the route directory
+
+---
+
+## Recovery from Crashed Sessions
+
+If a previous session crashed or was interrupted:
+1. Check for `.claude-design/` directory — delete if found
+2. Check for `__design_lab` routes — delete if found
+3. Check `app/` and `pages/` for any `__design_` prefixed files
+4. Check `.claude-design/run-log.md` for the session state
+5. If Vite project: check if `App.tsx` was modified (look for design lab conditional)
+6. Run `cleanup-check.sh` to verify clean state
+7. Inform user of recovered state before starting new session
 
 ---
 
 ## Configuration Options
 
-The plugin supports these optional configurations (via environment or project config):
+The plugin reads configuration from these sources (in priority order):
+1. **Environment variables**: `DESIGN_AUTO_IMPLEMENT`, `DESIGN_KEEP_LAB`, `DESIGN_MEMORY_PATH`
+2. **`.claude-design/config.json`**: Project-level overrides
+3. **Defaults**: `DESIGN_AUTO_IMPLEMENT=false`, `DESIGN_KEEP_LAB=false`, `DESIGN_MEMORY_PATH=DESIGN_MEMORY.md`
 
-- `DESIGN_AUTO_IMPLEMENT`: If `true`, implement the plan immediately after confirmation
-- `DESIGN_KEEP_LAB`: If `true`, don't delete lab until explicit cleanup command
-- `DESIGN_MEMORY_PATH`: Custom path for Design Memory file
+### Reading Configuration
+
+At the start of each session, check:
+```
+const config = {
+  autoImplement: process.env.DESIGN_AUTO_IMPLEMENT === 'true',
+  keepLab: process.env.DESIGN_KEEP_LAB === 'true',
+  memoryPath: process.env.DESIGN_MEMORY_PATH || 'DESIGN_MEMORY.md',
+};
+```
+
+### Behavior
+
+- `DESIGN_AUTO_IMPLEMENT=true`: After finalization, immediately start implementing the DESIGN_PLAN.md
+- `DESIGN_KEEP_LAB=true`: Skip automatic cleanup; user must run `/design-and-refine:cleanup` manually
+- `DESIGN_MEMORY_PATH`: Custom location for Design Memory file (relative to project root)
 
 ---
 
@@ -905,7 +1028,7 @@ The plugin supports these optional configurations (via environment or project co
 5. Plugin generates: Design Brief summary
 6. Plugin creates: `.claude-design/lab/` with 5 variants
 7. Plugin creates: `app/__design_lab/page.tsx`
-8. Plugin starts: `pnpm dev`
+8. Plugin outputs: Lab URL and review instructions
 9. Plugin outputs: "Open http://localhost:3000/__design_lab"
 10. User reviews variants in browser
 11. Plugin asks: "Which variant wins?"

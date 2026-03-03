@@ -1215,6 +1215,310 @@ Reference specific aspects:
 
 ---
 
+## Part 11: Modern CSS & UI Patterns (2024-2026)
+
+### CSS Container Queries
+
+Container queries allow components to respond to their parent's size, not the viewport:
+
+```css
+.card-container {
+  container-type: inline-size;
+  container-name: card;
+}
+
+@container card (min-width: 400px) {
+  .card { display: grid; grid-template-columns: 200px 1fr; }
+}
+
+@container card (max-width: 399px) {
+  .card { display: flex; flex-direction: column; }
+}
+```
+
+**When to use:**
+- Reusable components that appear in different-width containers
+- Sidebar vs main content area layouts
+- Dashboard cards that reflow based on available space
+
+**When NOT to use:**
+- Page-level layout (use media queries)
+- Simple show/hide (use media queries)
+
+### CSS Layers & Token Architecture
+
+Use `@layer` to establish explicit cascade priority:
+
+```css
+@layer reset, tokens, base, components, utilities;
+
+@layer tokens {
+  :root {
+    --color-primary: oklch(0.7 0.15 250);
+    --radius-sm: 4px;
+    --radius-md: 8px;
+  }
+}
+
+@layer base {
+  body { font-family: var(--font-sans); }
+}
+
+@layer components {
+  .btn { padding: var(--space-2) var(--space-4); }
+}
+```
+
+**Benefits:**
+- Eliminates specificity wars
+- Third-party CSS can be contained in its own layer
+- Tokens layer ensures design tokens always take precedence
+
+### View Transitions API
+
+Smooth transitions between page states or route changes:
+
+```typescript
+// Basic usage
+document.startViewTransition(() => {
+  updateDOM();
+});
+
+// Named transitions for specific elements
+.hero-image {
+  view-transition-name: hero;
+}
+
+// Customize the transition
+::view-transition-old(hero) {
+  animation: fade-out 0.3s ease-out;
+}
+::view-transition-new(hero) {
+  animation: fade-in 0.3s ease-in;
+}
+```
+
+**Next.js App Router integration:**
+- Use with `useTransitionRouter` from next-view-transitions
+- Apply `view-transition-name` to persistent elements across routes
+
+**When to use:**
+- Page/route transitions
+- List item reordering animations
+- Before/after state changes
+
+### Popover API (Native Floating UI)
+
+Native browser popovers without JavaScript positioning:
+
+```html
+<button popovertarget="menu">Open Menu</button>
+<div id="menu" popover>
+  <nav>Menu content</nav>
+</div>
+```
+
+```css
+[popover] {
+  /* Positioned in top layer - no z-index needed */
+  margin: auto; /* Centers by default */
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+[popover]:popover-open {
+  /* Entry animation */
+  animation: fade-in 0.2s ease-out;
+}
+```
+
+**Benefits:**
+- No z-index management (uses top layer)
+- Built-in light-dismiss (click outside to close)
+- Accessible by default (focus management, Escape key)
+- No JavaScript positioning library needed for simple cases
+
+### Skeleton Screens
+
+Preferred over spinners for content-heavy loading states:
+
+```css
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base) 25%,
+    var(--skeleton-shine) 50%,
+    var(--skeleton-base) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; opacity: 0.7; }
+}
+```
+
+**Guidelines:**
+- Match skeleton shape to actual content layout
+- Use for initial page loads and data fetching
+- Include 3-5 skeleton items to suggest list length
+- Never show skeletons for more than 3 seconds — switch to error state
+
+### Auto-Resize Textareas
+
+Native auto-resize without JavaScript:
+
+```css
+textarea {
+  field-sizing: content;
+  min-height: 2lh; /* minimum 2 lines */
+  max-height: 10lh; /* maximum 10 lines */
+}
+```
+
+**Fallback for older browsers:**
+```javascript
+textarea.addEventListener('input', () => {
+  textarea.style.height = 'auto';
+  textarea.style.height = textarea.scrollHeight + 'px';
+});
+```
+
+### Scroll-Driven Animations
+
+CSS-only scroll-linked animations:
+
+```css
+.progress-bar {
+  animation: grow-width linear;
+  animation-timeline: scroll();
+}
+
+@keyframes grow-width {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+/* Element-based scroll (animate as element enters viewport) */
+.fade-in-on-scroll {
+  animation: fade-in linear both;
+  animation-timeline: view();
+  animation-range: entry 0% entry 100%;
+}
+```
+
+**When to use:**
+- Reading progress indicators
+- Parallax-like effects (without JS overhead)
+- Reveal animations on scroll
+- Header shrink on scroll
+
+**Performance:** GPU-accelerated, runs on compositor thread — no main thread blocking
+
+### AI-Native UI Patterns
+
+Patterns for AI-powered interfaces:
+
+**Streaming text:**
+- Show cursor/caret while generating
+- Render markdown progressively (not after completion)
+- Allow user to stop generation mid-stream
+
+**Agent progress:**
+- Show step-by-step progress with collapsible details
+- Use indeterminate progress for uncertain duration
+- Show intermediate results when available
+
+**Confidence indicators:**
+- Use visual confidence levels (high/medium/low) not percentages
+- Show source citations inline, not in footnotes
+- Allow user to verify/correct AI suggestions
+
+**Input patterns:**
+- Large, prominent text input (not chat bubbles for every interaction)
+- Show suggested prompts for empty states
+- Support multi-modal input (text + image + file)
+
+**Feedback loops:**
+- Thumbs up/down on AI responses
+- "Regenerate" button with different approach
+- Inline editing of AI output
+
+### shadcn/ui + Radix UI Patterns
+
+**Component philosophy:**
+- Copy-paste components, not imported from node_modules
+- Full control over styling and behavior
+- Built on Radix UI primitives for accessibility
+
+**Detection in preflight:**
+```
+Check for:
+- components.json in project root
+- src/components/ui/ or components/ui/ directory
+- @radix-ui/* in package.json dependencies
+- cn() or clsx() utility function
+```
+
+**When detected:**
+- Use existing shadcn components (Button, Input, Card, Dialog, etc.)
+- Follow the project's cn() utility pattern for class merging
+- Reference components.json for style configuration (tailwind prefix, aliases)
+- Don't create competing component primitives
+
+**Integration pattern:**
+```tsx
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
+```
+
+### Variable Fonts
+
+Single font file with adjustable axes:
+
+```css
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter-Variable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  font-optical-sizing: auto; /* Adjusts for size automatically */
+}
+
+.heading {
+  font-variation-settings: 'wght' 700, 'opsz' 32;
+}
+
+.caption {
+  font-variation-settings: 'wght' 400, 'opsz' 12;
+}
+```
+
+**Benefits:**
+- Single file replaces multiple font weights (smaller total download)
+- Smooth weight transitions for animations
+- Optical sizing adjusts letterforms for readability at different sizes
+
+**Popular variable fonts:**
+- Inter (sans-serif, great for UI)
+- JetBrains Mono (monospace, for code)
+- Geist (Vercel's font, modern and clean)
+
+---
+
 ## Quick Decision Framework
 
 When unsure, ask:
