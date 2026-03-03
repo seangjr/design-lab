@@ -45,3 +45,15 @@ When this command is invoked:
 - ONLY delete route files that match the plugin's naming pattern (`__design_lab`, `__design_preview`)
 - Always confirm with the user before deleting
 - Never delete user-authored files
+
+## Vite App.tsx Recovery
+
+For Vite projects without a router, the design lab adds a conditional render to `App.tsx`. During cleanup:
+
+1. Check if `App.tsx` was modified by looking for `__design_lab` or `design_lab=true` references
+2. If found, check for `.claude-design/app-tsx-backup` — if it exists, restore from backup
+3. If no backup exists, remove only the design lab conditional block:
+   - Remove the import of the design lab component
+   - Remove the `if (searchParams.get('design_lab'))` conditional
+   - Keep all original App.tsx content intact
+4. Verify the file still compiles after modification

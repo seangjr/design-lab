@@ -35,6 +35,17 @@ When this command is invoked, follow the Design Lab skill workflow exactly. The 
 - Feedback collection and synthesis process
 - Cleanup procedures
 
-$ARGUMENTS will contain any target specified by the user.
-
 Begin by running the preflight detection, then start the interview process. Use the AskUserQuestion tool for all interview steps.
+
+## Argument Parsing
+
+`$ARGUMENTS` may contain:
+- **A component/page name**: e.g., `CheckoutSummary`, `UserProfile` → use as target name
+- **A file path**: e.g., `src/components/Checkout.tsx` → use as target path and derive name
+- **A route path**: e.g., `/checkout`, `/dashboard/settings` → find the corresponding file
+- **Empty**: prompt user for target in Step 1.1
+
+Examples:
+- `/design-and-refine:start CheckoutSummary` → targetName = "CheckoutSummary"
+- `/design-and-refine:start src/components/Checkout.tsx` → targetPath = "src/components/Checkout.tsx", targetName = "Checkout"
+- `/design-and-refine:start /checkout` → find route handler, targetName = "Checkout"

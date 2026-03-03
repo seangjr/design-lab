@@ -4,17 +4,15 @@ Generate UI design variations, collect feedback, synthesize the best elements, a
 
 ## Installation
 
-### Local Testing
-
+### As a Claude Code Plugin
 ```bash
-claude --plugin-dir /path/to/design-variations-plugin
+claude plugin add /path/to/design-and-refine
 ```
 
-### From Marketplace
-
+### Development
 ```bash
-/plugin marketplace add 0xdesigner/design-plugin
-/plugin install design-and-refine@design-plugins
+git clone https://github.com/khaeli/design-and-refine.git
+claude --plugin-dir ./design-and-refine
 ```
 
 ## Commands
@@ -47,6 +45,25 @@ Remove all temporary design lab files.
 7. **Synthesize**: Creates a refined version combining the best elements
 8. **Iterate**: Repeat until you're confident
 9. **Finalize**: Cleans up temp files, produces `DESIGN_PLAN.md`
+
+## Architecture Note
+
+`FeedbackOverlay.tsx` is the **canonical self-contained source**. It contains all types, utilities, and styles inline for maximum portability — copy this single file to any React project and it works.
+
+The modular files (`types.ts`, `selector-utils.ts`, `format-utils.ts`, `index.ts`) are **reference implementations** that mirror the inlined code for development and testing. Changes should be made to BOTH the self-contained file and the modular files.
+
+To check for divergence, run:
+```bash
+# TODO: sync-check.sh compares inlined functions against modular files
+./scripts/sync-check.sh
+```
+
+## Examples
+
+See the [`examples/`](./examples) directory for sample files:
+- [`design-brief.json`](./examples/design-brief.json) — Sample design brief input
+- [`DESIGN_PLAN.md`](./examples/DESIGN_PLAN.md) — Filled-in implementation plan
+- [`DESIGN_MEMORY.md`](./examples/DESIGN_MEMORY.md) — Filled-in design memory
 
 ## Supported Frameworks
 

@@ -1,0 +1,28 @@
+{
+  "scope": "page",
+  "isRedesign": true,
+  "targetPath": "src/app/dashboard/page.tsx",
+  "targetName": "Dashboard",
+  "painPoints": ["Too dense", "Primary actions unclear", "Poor mobile experience"],
+  "inspiration": {
+    "visual": ["Linear", "Vercel"],
+    "functional": ["Inline editing", "Keyboard shortcuts"]
+  },
+  "brand": {
+    "adjectives": ["minimal", "professional", "fast"],
+    "density": "comfortable",
+    "darkMode": true
+  },
+  "persona": {
+    "primary": "Developer",
+    "context": "desktop-first",
+    "keyTasks": ["View project status", "Navigate to issues", "Check deployment logs"]
+  },
+  "constraints": {
+    "mustKeep": ["existing navigation structure"],
+    "technical": ["use existing components", "WCAG accessible"]
+  },
+  "framework": "nextjs-app",
+  "packageManager": "pnpm",
+  "stylingSystem": "tailwind"
+}
