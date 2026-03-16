@@ -9,8 +9,9 @@ The plugin generates 5 distinct UI variations in a temporary "Design Lab" route 
 ## Development Commands
 
 ```bash
-# Install as plugin
-claude plugin add /path/to/design-lab
+# Install as plugin (inside a Claude Code session)
+/plugin marketplace add /path/to/design-lab
+/plugin install design-lab@local
 
 # Run in dev mode (loads plugin from local dir)
 claude --plugin-dir ./design-lab

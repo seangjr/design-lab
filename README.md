@@ -4,13 +4,17 @@ A Claude Code plugin that generates 5 distinct UI design variations, collects yo
 
 ## Installation
 
-```bash
-# Install directly from GitHub
-claude plugin add seangjr/design-lab
+Inside a Claude Code session, run:
 
-# Or install from a local clone
+```
+# Add the marketplace, then install
+/plugin marketplace add seangjr/design-lab
+/plugin install design-lab@seangjr-design-lab
+
+# Or from a local clone
 git clone https://github.com/seangjr/design-lab.git
-claude plugin add ./design-lab
+/plugin marketplace add ./design-lab
+/plugin install design-lab@local
 ```
 
 ## Quick Start
