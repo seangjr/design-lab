@@ -6,10 +6,7 @@
     "name": "seangjr",
     "url": "https://github.com/seangjr"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/seangjr/design-lab"
-  },
+  "repository": "https://github.com/seangjr/design-lab",
   "homepage": "https://github.com/seangjr/design-lab#readme",
   "keywords": ["design", "ui", "frontend", "prototyping", "refine", "iterate", "shadcn", "tailwind", "motion", "animation", "micro-interactions"],
   "license": "MIT",
