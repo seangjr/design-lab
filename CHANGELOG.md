@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-03-16
+
+### Added
+- **FeedbackOverlay**: Draggable comment input panel — drag by header to reposition anywhere in the viewport
+- **FeedbackOverlay**: Draggable floating sidebar — no longer edge-pinned, can be moved freely
+- **FeedbackOverlay**: `useDraggable` hook with mouse, touch, viewport clamping, and resize support
+- **FeedbackOverlay**: `DragHandle` sub-component (2x3 dot grid) on both panels
+- **FeedbackOverlay**: Sidebar minimize toggle — collapse to header-only with "—" / "▢" button
+- **Figma Import**: Figma MCP server detection in Phase 0 preflight
+- **Figma Import**: Step 0.5 (Figma Design Source) — ask users if they have a Figma reference before interview
+- **Figma Import**: Step 1.0 (Figma Source Collection) — fetch file, select frame, extract design tokens and component structure
+- **Figma Import**: Abbreviated interview mode when Figma tokens provide brand/style context
+- **Figma Import**: `figmaSource` field in design brief schema (tokens, component tree, text content, assets)
+- **Figma Import**: Variant A becomes a "Faithful Replica" of the Figma design with fidelity checklist
+- **Figma Import**: Variants B-E use Figma design as baseline instead of generating from scratch
+- **Figma Import**: Figma-aware feedback presentation note for Variant A
+- **Figma Import**: Figma Reference section in DESIGN_PLAN.md output (file, frame, deviations, tokens)
+- **Figma Import**: Figma token merge into DESIGN_MEMORY.md sections
+- **commands/start.md**: `--figma <url>` argument for direct Figma file import
+- **plugin.json**: `DESIGN_FIGMA_MODE` config (`prompt` / `always` / `never`)
+- **DESIGN_PLAN.template.md**: Figma Reference section with placeholders
+
+### Fixed
+- **FeedbackOverlay**: Panel position magic number `viewportWidth - 380` → `viewportWidth - 20` (sidebar no longer edge-pinned)
+
+### Changed
+- **FeedbackOverlay**: Sidebar converted from full-height edge-pinned panel to floating window with rounded corners and elevated shadow
+- **FeedbackOverlay**: Sidebar header padding reduced from 20px to 16px 20px, top corners rounded
+- **CLAUDE.md**: Updated Phase 0, 1, 3 descriptions; added `DESIGN_FIGMA_MODE` to config table; added Figma to supported targets
+
 ## [1.0.0] - 2026-03-03
 
 ### Changed

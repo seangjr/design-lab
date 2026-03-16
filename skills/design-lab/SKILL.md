@@ -89,6 +89,15 @@ Look for existing Design Memory file:
 
 If found, read it and use to prefill defaults and skip redundant questions.
 
+### Figma MCP Detection
+
+Check for Figma MCP server availability:
+- Scan available MCP tools for names containing "figma" (case-insensitive)
+- Store detection results: `figmaMcpAvailable: true/false` and `figmaTools: string[]` (list of matched tool names)
+- Include in preflight summary: "Figma MCP: detected (N tools available)" or "Figma MCP: not detected"
+
+This detection determines whether the Figma design import option is available in Phase 1.
+
 ### Design Memory Fast Path
 
 If Design Memory exists, map fields to interview questions:
@@ -144,6 +153,79 @@ theme.boxShadow   // Elevation system
 ## Phase 1: Interview
 
 Use the **AskUserQuestion** tool for all interview steps. Adapt questions based on Design Memory if it exists.
+
+### Step 0.5: Figma Design Source
+
+**Always ask this before Interview Mode selection:**
+
+**Question: Do you have an existing Figma design to reference?**
+- Header: "Design Source"
+- Question: "Do you have an existing Figma design to reference?"
+- Options:
+  - "Yes, I have a Figma file" - Import design tokens and structure from Figma
+  - "No, starting fresh" - Generate variants from scratch
+
+**If "Yes" selected:**
+- If `figmaMcpAvailable` is `true` → proceed to **Step 1.0: Figma Source Collection** (below)
+- If `figmaMcpAvailable` is `false` → display Figma MCP setup instructions:
+  ```
+  To import from Figma, you need the Figma MCP server configured.
+
+  1. Get a Figma Personal Access Token from https://www.figma.com/developers/api
+  2. Add the Figma MCP server to your Claude Code settings
+  3. Restart Claude Code
+
+  Would you like to proceed without Figma import, or wait until it's configured?
+  ```
+  - Options: "Proceed without Figma" / "I'll set it up first" (abort gracefully)
+
+**If "No" selected:** → proceed to Step 0 (Interview Mode) as normal.
+
+### Step 1.0: Figma Source Collection
+
+**Only reached when user selected "Yes" in Step 0.5 and Figma MCP is available.**
+
+1. **Ask for Figma file URL or key:**
+   - Header: "Figma File"
+   - Question: "Paste the Figma file URL or file key"
+   - Accept formats: full URL (`https://www.figma.com/file/...` or `https://www.figma.com/design/...`) or bare key
+
+2. **Fetch file metadata** using Figma MCP tools:
+   - Get file name and page/frame structure
+   - Present top-level frames/components to the user
+   - Ask: "Which frame or component should I reference?"
+
+3. **Extract design tokens** from the selected frame:
+   - **Colors:** Fill colors, stroke colors, text colors → map to palette
+   - **Typography:** Font family, size, weight, line height, letter spacing
+   - **Spacing:** Auto-layout padding, gaps → spacing scale
+   - **Border radius:** Corner radii from shapes
+   - **Shadows:** Drop shadows and inner shadows
+   - **Layout:** Auto-layout direction/alignment → flex/grid mapping
+
+4. **Extract component structure:**
+   - Node hierarchy and names
+   - Text content from text nodes
+   - Asset/image references
+   - Component instance names
+
+5. **Display summary for user confirmation:**
+   ```
+   Extracted from: [fileName] / [frameName]
+
+   Colors: [N] unique colors (primary: #xxx, secondary: #xxx, ...)
+   Typography: [N] text styles (headings: [font], body: [font])
+   Spacing: [scale values]
+   Layout: [flex/grid description]
+   Components: [N] nodes in hierarchy
+
+   Does this look correct? Proceed with these tokens?
+   ```
+
+6. **Run abbreviated interview** (skip questions already answered by Figma):
+   - Skip: Brand/style direction (Step 1.3) — already from Figma tokens
+   - Skip: Visual inspiration (Step 1.2 Q2) — Figma IS the reference
+   - Still ask: Pain points (Step 1.2 Q1), persona (Step 1.4), constraints (Step 1.5), functional inspiration (Step 1.2 Q3)
 
 ### Step 0: Interview Mode
 
@@ -332,11 +414,34 @@ After the interview, create a structured Design Brief as JSON and save to `.clau
   "packageManager": "pnpm",
   "stylingSystem": "tailwind",
   "componentLibrary": "shadcn",
-  "animationLibrary": "motion"
+  "animationLibrary": "motion",
+  "figmaSource": null
 }
 ```
 
-Display a summary to the user before proceeding.
+**When Figma import was used in Phase 1**, the `figmaSource` field is populated:
+```json
+{
+  "figmaSource": {
+    "fileKey": "abc123def456",
+    "fileName": "My Design File",
+    "nodeId": "123:456",
+    "nodeName": "Hero Section",
+    "extractedTokens": {
+      "colors": { "primary": "#6366f1", "secondary": "#10b981", "background": "#ffffff", "text": "#111827" },
+      "typography": { "heading": { "family": "Inter", "weight": 700, "size": "32px" }, "body": { "family": "Inter", "weight": 400, "size": "16px" } },
+      "spacing": { "xs": "4px", "sm": "8px", "md": "16px", "lg": "24px", "xl": "32px" },
+      "borderRadius": { "sm": "4px", "md": "8px", "lg": "12px" },
+      "shadows": ["0 1px 3px rgba(0,0,0,0.12)", "0 4px 6px rgba(0,0,0,0.1)"]
+    },
+    "componentTree": {},
+    "textContent": {},
+    "assetUrls": []
+  }
+}
+```
+
+When `figmaSource` is `null`, no Figma import was used. Display a summary to the user before proceeding.
 
 ---
 
@@ -526,6 +631,31 @@ Each variant MUST explore a different design axis. Do not create minor variation
     transition={{ type: "spring", bounce: 0.25 }}
   />
   ```
+
+### Figma-Referenced Variant Generation
+
+When `figmaSource` is present in the Design Brief, variant generation shifts:
+
+**Variant A: Faithful Replica** — Pixel-close implementation of the Figma design
+- Use extracted tokens (colors, typography, spacing, border radius, shadows) directly
+- Match the Figma component hierarchy as closely as possible in React
+- Apply the Figma layout (auto-layout → flex/grid) faithfully
+- Preserve all text content from the Figma frame
+- Add motion micro-interactions (subtle entrance animations, hover states) that complement the design
+- **Figma Fidelity Checklist** (verify before presenting):
+  - [ ] Layout matches Figma auto-layout direction and alignment
+  - [ ] Colors match extracted palette (within ±2 hex values)
+  - [ ] Typography matches font family, size, weight, line height
+  - [ ] Spacing matches extracted spacing tokens
+  - [ ] Border radii match extracted values
+  - [ ] Visual hierarchy matches Figma layer ordering
+  - [ ] All text content from Figma is preserved
+
+**Variants B-E** — Same axes as normal (hierarchy, rhythm, interaction, expression) but:
+- Use the Figma design as the **baseline** rather than generating from scratch
+- Each variant departs from the Figma design along its specific axis
+- Variant descriptions should note what changed vs the Figma reference
+- Still use the project's existing visual language and Figma tokens
 
 ### Variant Distinctiveness Checklist
 
@@ -777,6 +907,12 @@ To view and provide feedback:
 7. Paste the copied text here in the terminal
 
 Or just describe your feedback manually below!
+```
+
+**When Figma import was used**, append this note to the presentation:
+```
+📐 **Note:** Variant A is a faithful implementation of your Figma design.
+Variants B-E explore alternatives using your Figma design as the baseline.
 ```
 
 **When the user pastes feedback**, it will be in this format:
@@ -1051,10 +1187,23 @@ Create `DESIGN_PLAN.md` in the project root:
 - **Spring configs:** [e.g., snappy: stiffness 400/damping 25, smooth: 300/30]
 - **Reduced motion fallback:** Opacity-only transitions, no springs/slides, instant state changes
 
+## Figma Reference
+<!-- Only include this section when figmaSource was used -->
+- **File:** [Figma file name] ([file key link])
+- **Frame:** [Frame/component name] (node ID: [nodeId])
+- **Deviations from Figma:** [List any intentional deviations from the original design]
+- **Applied tokens:** [Which Figma tokens were used vs project tokens]
+
 ---
 
 *Generated by Design Variations plugin*
 ```
+
+**When Figma import was used**, also merge Figma tokens into DESIGN_MEMORY.md:
+- Colors from `figmaSource.extractedTokens.colors` → merge into `Color` section
+- Typography from `figmaSource.extractedTokens.typography` → merge into `Typography` section
+- Spacing from `figmaSource.extractedTokens.spacing` → merge into `Layout & Spacing` section
+- Note the Figma file as the source of these tokens
 
 ### 8.3: Update Design Memory
 

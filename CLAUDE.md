@@ -45,10 +45,10 @@ examples/                    # Sample outputs (design-brief.json, DESIGN_PLAN.md
 
 Defined in `skills/design-lab/SKILL.md`:
 
-0. **Preflight** — Detect framework, package manager, styling system, existing Design Memory
-1. **Interview** — Collect requirements via AskUserQuestion (quick/detailed/skip modes)
+0. **Preflight** — Detect framework, package manager, styling system, existing Design Memory, Figma MCP availability
+1. **Interview** — Collect requirements via AskUserQuestion (quick/detailed/skip modes); optionally import Figma design tokens
 2. **Design Brief** — Generate structured JSON brief at `.claude-design/design-brief.json`
-3. **Generate Lab** — Create 5 variants (A-E) exploring different design axes (structure, hierarchy, rhythm, interaction, expression), each with axis-appropriate motion micro-interactions using the `motion` library
+3. **Generate Lab** — Create 5 variants (A-E) exploring different design axes (structure, hierarchy, rhythm, interaction, expression), each with axis-appropriate motion micro-interactions using the `motion` library. When Figma imported, Variant A is a faithful replica.
 4. **Present** — Output lab URL; never start the dev server (it blocks forever)
 5. **Feedback** — Collect via interactive overlay (primary) or manual AskUserQuestion (fallback)
 6. **Synthesize** — Create Variant F combining best elements; cap at 3 iterations
@@ -88,6 +88,7 @@ Set via environment variables or `.claude-design/config.json`:
 | `DESIGN_AUTO_IMPLEMENT` | `false` | Immediately implement the plan after finalization |
 | `DESIGN_KEEP_LAB` | `false` | Skip auto-cleanup; require manual `/design-lab:cleanup` |
 | `DESIGN_MEMORY_PATH` | `DESIGN_MEMORY.md` | Custom location for Design Memory file |
+| `DESIGN_FIGMA_MODE` | `prompt` | Figma import behavior: `prompt` (ask each session), `always` (auto-import if MCP available), `never` (skip) |
 
 ## Supported Targets
 
@@ -98,3 +99,5 @@ Set via environment variables or `.claude-design/config.json`:
 **Styling (fallback):** CSS Modules, Material UI, Chakra UI, Ant Design, styled-components, Emotion
 
 **Animation:** Motion library (`import from "motion/react"`) preferred; CSS transitions as fallback. Motion micro-interactions are woven into every variant axis (structure, hierarchy, rhythm, interaction, expression).
+
+**Design Import:** Figma (via MCP server) — extracts design tokens, component hierarchy, and text content to guide variant generation. Variant A becomes a faithful replica when Figma is imported.

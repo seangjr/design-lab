@@ -76,6 +76,13 @@
 - `--color-primary`: #value - Used for primary buttons and links
 - `--spacing-md`: 16px - Default content spacing
 
+## Figma Reference
+<!-- Include this section only when a Figma design was imported -->
+- **File:** {{FIGMA_FILE_NAME}} (key: `{{FIGMA_FILE_KEY}}`)
+- **Frame:** {{FIGMA_NODE_NAME}} (node: `{{FIGMA_NODE_ID}}`)
+- **Deviations:** {{FIGMA_DEVIATIONS}}
+- **Applied Tokens:** {{FIGMA_TOKENS_SUMMARY}}
+
 ## Notes
 {{ADDITIONAL_NOTES}}
 

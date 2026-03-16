@@ -457,6 +457,116 @@ function validateFeedback(comments: Comment[], overall: string): { valid: boolea
 }
 
 // ============================================================================
+// Draggable Hook (inlined for portability)
+// ============================================================================
+
+interface DragPosition {
+  x: number;
+  y: number;
+}
+
+function useDraggable(initialPosition: DragPosition) {
+  const [position, setPosition] = useState<DragPosition>(initialPosition);
+  const isDragging = useRef(false);
+  const dragOffset = useRef<DragPosition>({ x: 0, y: 0 });
+
+  const clampPosition = useCallback((x: number, y: number): DragPosition => ({
+    x: Math.max(0, Math.min(x, window.innerWidth - 60)),
+    y: Math.max(0, Math.min(y, window.innerHeight - 60)),
+  }), []);
+
+  const onDragStart = useCallback((e: React.MouseEvent) => {
+    // Don't start drag if clicking a button or interactive element
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'BUTTON' || target.closest('button')) return;
+
+    isDragging.current = true;
+    const rect = (e.currentTarget.closest('[data-draggable-panel]') as HTMLElement)?.getBoundingClientRect();
+    if (rect) {
+      dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+    e.preventDefault();
+  }, []);
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'BUTTON' || target.closest('button')) return;
+
+    isDragging.current = true;
+    const touch = e.touches[0];
+    const rect = (e.currentTarget.closest('[data-draggable-panel]') as HTMLElement)?.getBoundingClientRect();
+    if (rect) {
+      dragOffset.current = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+      const clamped = clampPosition(e.clientX - dragOffset.current.x, e.clientY - dragOffset.current.y);
+      setPosition(clamped);
+    };
+    const handleMouseUp = () => { isDragging.current = false; };
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isDragging.current) return;
+      const touch = e.touches[0];
+      const clamped = clampPosition(touch.clientX - dragOffset.current.x, touch.clientY - dragOffset.current.y);
+      setPosition(clamped);
+    };
+    const handleTouchEnd = () => { isDragging.current = false; };
+    const handleResize = () => {
+      setPosition((prev) => clampPosition(prev.x, prev.y));
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('touchmove', handleTouchMove, { passive: true });
+    document.addEventListener('touchend', handleTouchEnd);
+    window.addEventListener('resize', handleResize);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [clampPosition]);
+
+  return { position, setPosition, onDragStart, onTouchStart, isDragging };
+}
+
+// ============================================================================
+// DragHandle Sub-Component
+// ============================================================================
+
+const DragHandle: React.FC = () => (
+  <div
+    aria-hidden="true"
+    style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(2, 6px)',
+      gridTemplateRows: 'repeat(3, 6px)',
+      gap: '3px',
+      cursor: 'grab',
+      padding: '4px',
+      flexShrink: 0,
+    }}
+  >
+    {Array.from({ length: 6 }).map((_, i) => (
+      <div
+        key={i}
+        style={{
+          width: '4px',
+          height: '4px',
+          borderRadius: '50%',
+          backgroundColor: '#9ca3af',
+        }}
+      />
+    ))}
+  </div>
+);
+
+// ============================================================================
 // Inline Styles (no external CSS dependencies)
 // ============================================================================
 
@@ -551,22 +661,24 @@ const styles: Record<string, CSSProperties> = {
   },
   sidebar: {
     position: 'fixed',
-    top: 0,
-    right: 0,
     width: '360px',
-    height: '100vh',
+    height: '70vh',
+    minHeight: '400px',
+    maxHeight: 'calc(100vh - 40px)',
     backgroundColor: '#fff',
-    borderLeft: '1px solid #e5e7eb',
+    border: '1px solid #e5e7eb',
+    borderRadius: '12px',
     zIndex: 9997,
     display: 'flex',
     flexDirection: 'column',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.05)',
+    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.12), 0 8px 20px rgba(0, 0, 0, 0.08)',
   },
   sidebarHeader: {
-    padding: '20px',
+    padding: '16px 20px',
     borderBottom: '1px solid #e5e7eb',
     backgroundColor: '#f9fafb',
+    borderRadius: '12px 12px 0 0',
   },
   sidebarTitle: { fontSize: '18px', fontWeight: 700, color: '#111827', margin: 0 },
   sidebarSubtitle: { fontSize: '13px', color: '#6b7280', marginTop: '4px' },
@@ -765,6 +877,14 @@ export function FeedbackOverlay({
   const [hoverRect, setHoverRect] = useState<DOMRect | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
+
+  // Draggable panel hooks
+  const panelDrag = useDraggable({ x: 0, y: 0 });
+  const sidebarDrag = useDraggable({
+    x: typeof window !== 'undefined' ? window.innerWidth - 380 : 0,
+    y: 20,
+  });
   const [isButtonHovered, setIsButtonHovered] = useState(false);
   // 4.5: formattedOutput stored separately as derived state
   const [formattedOutput, setFormattedOutput] = useState('');
@@ -914,7 +1034,7 @@ export function FeedbackOverlay({
       let panelY = e.clientY + 20;
 
       // Keep panel in viewport
-      if (panelX + panelWidth > viewportWidth - 380) {
+      if (panelX + panelWidth > viewportWidth - 20) {
         panelX = e.clientX - panelWidth - 20;
       }
       if (panelY + panelHeight > viewportHeight - 20) {
@@ -927,6 +1047,9 @@ export function FeedbackOverlay({
         clickX: e.clientX,
         clickY: e.clientY,
       };
+
+      // Reset panel drag position to near-click location
+      panelDrag.setPosition({ x: panelX, y: panelY });
 
       setState((prev) => ({
         ...prev,
@@ -1202,10 +1325,11 @@ export function FeedbackOverlay({
         );
       })}
 
-      {/* Floating Comment Input Panel (appears near click) */}
+      {/* Floating Comment Input Panel (appears near click, draggable) */}
       {state.panelPosition && (
         <div
           ref={panelRef}
+          data-draggable-panel
           className={`${OVERLAY_CLASS_PREFIX}-panel`}
           style={{
             position: 'fixed',
@@ -1217,18 +1341,28 @@ export function FeedbackOverlay({
             border: '1px solid #e5e7eb',
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             overflow: 'hidden',
-            left: state.panelPosition.x,
-            top: state.panelPosition.y,
+            left: panelDrag.position.x,
+            top: panelDrag.position.y,
           }}
         >
-          <div style={{
-            padding: '12px 16px',
-            borderBottom: '1px solid #e5e7eb',
-            fontSize: '13px',
-            fontWeight: 600,
-            color: '#374151',
-            backgroundColor: '#f9fafb',
-          }}>
+          <div
+            style={{
+              padding: '12px 16px',
+              borderBottom: '1px solid #e5e7eb',
+              fontSize: '13px',
+              fontWeight: 600,
+              color: '#374151',
+              backgroundColor: '#f9fafb',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'grab',
+              userSelect: 'none',
+            }}
+            onMouseDown={panelDrag.onDragStart}
+            onTouchStart={panelDrag.onTouchStart}
+          >
+            <DragHandle />
             Add Comment
           </div>
           <div style={{ padding: '16px' }}>
@@ -1262,103 +1396,151 @@ export function FeedbackOverlay({
         </div>
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar (floating, draggable) */}
       {state.isActive && (
-        <div className={`${OVERLAY_CLASS_PREFIX}-sidebar`} style={styles.sidebar}>
-          <div style={{ ...styles.sidebarHeader, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <h2 style={styles.sidebarTitle}>Design Feedback</h2>
-              <div style={styles.sidebarSubtitle}>
-                {state.comments.length} comment{state.comments.length !== 1 ? 's' : ''} on {targetName}
+        <div
+          data-draggable-panel
+          className={`${OVERLAY_CLASS_PREFIX}-sidebar`}
+          style={{
+            ...styles.sidebar,
+            left: sidebarDrag.position.x,
+            top: sidebarDrag.position.y,
+            ...(isSidebarMinimized ? { height: 'auto', minHeight: 'auto' } : {}),
+          }}
+        >
+          <div
+            style={{
+              ...styles.sidebarHeader,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              cursor: 'grab',
+              userSelect: 'none',
+              borderRadius: isSidebarMinimized ? '12px' : undefined,
+            }}
+            onMouseDown={sidebarDrag.onDragStart}
+            onTouchStart={sidebarDrag.onTouchStart}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <DragHandle />
+              <div>
+                <h2 style={styles.sidebarTitle}>Design Feedback</h2>
+                {!isSidebarMinimized && (
+                  <div style={styles.sidebarSubtitle}>
+                    {state.comments.length} comment{state.comments.length !== 1 ? 's' : ''} on {targetName}
+                  </div>
+                )}
               </div>
             </div>
-            <button
-              className={`${OVERLAY_CLASS_PREFIX}-close`}
-              style={{
-                padding: '6px 10px',
-                fontSize: '13px',
-                fontWeight: 500,
-                color: '#ef4444',
-                backgroundColor: '#fef2f2',
-                border: '1px solid #fecaca',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                transition: 'all 150ms ease',
-                flexShrink: 0,
-              }}
-              onClick={toggleFeedbackMode}
-            >
-              ✕ Exit
-            </button>
+            <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+              <button
+                className={`${OVERLAY_CLASS_PREFIX}-minimize`}
+                style={{
+                  padding: '6px 10px',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  color: '#6b7280',
+                  backgroundColor: '#f3f4f6',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 150ms ease',
+                }}
+                onClick={() => setIsSidebarMinimized((prev) => !prev)}
+              >
+                {isSidebarMinimized ? '▢' : '—'}
+              </button>
+              <button
+                className={`${OVERLAY_CLASS_PREFIX}-close`}
+                style={{
+                  padding: '6px 10px',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  color: '#ef4444',
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 150ms ease',
+                }}
+                onClick={toggleFeedbackMode}
+              >
+                ✕ Exit
+              </button>
+            </div>
           </div>
 
-          <div style={styles.sidebarContent}>
-            {variants.map((variantId) => {
-              const variantComments = commentsByVariant[variantId as VariantId];
-              if (!variantComments || variantComments.length === 0) return null;
+          {!isSidebarMinimized && (
+            <>
+              <div style={styles.sidebarContent}>
+                {variants.map((variantId) => {
+                  const variantComments = commentsByVariant[variantId as VariantId];
+                  if (!variantComments || variantComments.length === 0) return null;
 
-              return (
-                <div key={variantId} style={styles.sidebarSection}>
-                  <div style={styles.sidebarSectionTitle}>Variant {variantId}</div>
-                  {variantComments.map((comment) => (
-                    <div key={comment.id} style={styles.commentCard}>
-                      <div style={styles.commentCardHeader}>
-                        <div style={styles.commentCardPin}>{getGlobalIndex(comment)}</div>
-                        <div style={styles.commentCardElement}>
-                          {comment.element.readablePath.split(' > ').slice(-1)[0]}
+                  return (
+                    <div key={variantId} style={styles.sidebarSection}>
+                      <div style={styles.sidebarSectionTitle}>Variant {variantId}</div>
+                      {variantComments.map((comment) => (
+                        <div key={comment.id} style={styles.commentCard}>
+                          <div style={styles.commentCardHeader}>
+                            <div style={styles.commentCardPin}>{getGlobalIndex(comment)}</div>
+                            <div style={styles.commentCardElement}>
+                              {comment.element.readablePath.split(' > ').slice(-1)[0]}
+                            </div>
+                            <button style={styles.commentCardDelete} onClick={() => deleteComment(comment.id)}>
+                              Delete
+                            </button>
+                          </div>
+                          <div style={styles.commentCardText}>{comment.text}</div>
                         </div>
-                        <button style={styles.commentCardDelete} onClick={() => deleteComment(comment.id)}>
-                          Delete
-                        </button>
-                      </div>
-                      <div style={styles.commentCardText}>{comment.text}</div>
+                      ))}
                     </div>
-                  ))}
+                  );
+                })}
+
+                {state.comments.length === 0 && (
+                  <div style={{ color: '#6b7280', textAlign: 'center', padding: '40px 20px' }}>
+                    <p style={{ fontSize: '14px', marginBottom: '8px' }}>Click on any element to add feedback</p>
+                    <p style={{ fontSize: '13px', opacity: 0.8 }}>Comments will appear here</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Overall Direction */}
+              <div style={styles.overallSection}>
+                <div style={styles.overallLabel}>Overall Direction</div>
+                <textarea
+                  className={`${OVERLAY_CLASS_PREFIX}-overall-textarea`}
+                  placeholder="What's the overall direction? e.g., 'Go with Variant B's layout but use A's button styling...'"
+                  value={state.overallDirection}
+                  onChange={(e) => setState((prev) => ({ ...prev, overallDirection: e.target.value }))}
+                />
+              </div>
+
+              {/* Validation Errors */}
+              {validationErrors.length > 0 && (
+                <div style={{ padding: '0 16px' }}>
+                  <div style={styles.errorMessage}>
+                    {validationErrors.map((err, i) => (<div key={i}>{err}</div>))}
+                  </div>
                 </div>
-              );
-            })}
+              )}
 
-            {state.comments.length === 0 && (
-              <div style={{ color: '#6b7280', textAlign: 'center', padding: '40px 20px' }}>
-                <p style={{ fontSize: '14px', marginBottom: '8px' }}>Click on any element to add feedback</p>
-                <p style={{ fontSize: '13px', opacity: 0.8 }}>Comments will appear here</p>
+              {/* Submit Section — 2.6: enabled with overall direction or comments */}
+              <div style={styles.submitSection}>
+                <button
+                  style={{
+                    ...styles.submitButton,
+                    ...(!canSubmit ? styles.submitButtonDisabled : {}),
+                  }}
+                  onClick={openSubmitModal}
+                  disabled={!canSubmit}
+                >
+                  Submit Feedback
+                </button>
               </div>
-            )}
-          </div>
-
-          {/* Overall Direction */}
-          <div style={styles.overallSection}>
-            <div style={styles.overallLabel}>Overall Direction</div>
-            <textarea
-              className={`${OVERLAY_CLASS_PREFIX}-overall-textarea`}
-              placeholder="What's the overall direction? e.g., 'Go with Variant B's layout but use A's button styling...'"
-              value={state.overallDirection}
-              onChange={(e) => setState((prev) => ({ ...prev, overallDirection: e.target.value }))}
-            />
-          </div>
-
-          {/* Validation Errors */}
-          {validationErrors.length > 0 && (
-            <div style={{ padding: '0 16px' }}>
-              <div style={styles.errorMessage}>
-                {validationErrors.map((err, i) => (<div key={i}>{err}</div>))}
-              </div>
-            </div>
+            </>
           )}
-
-          {/* Submit Section — 2.6: enabled with overall direction or comments */}
-          <div style={styles.submitSection}>
-            <button
-              style={{
-                ...styles.submitButton,
-                ...(!canSubmit ? styles.submitButtonDisabled : {}),
-              }}
-              onClick={openSubmitModal}
-              disabled={!canSubmit}
-            >
-              Submit Feedback
-            </button>
-          </div>
         </div>
       )}
 

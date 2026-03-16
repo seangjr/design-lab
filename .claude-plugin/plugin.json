@@ -28,6 +28,12 @@
       "type": "string",
       "default": "DESIGN_MEMORY.md",
       "description": "Custom path for the Design Memory file"
+    },
+    "DESIGN_FIGMA_MODE": {
+      "type": "string",
+      "default": "prompt",
+      "enum": ["prompt", "always", "never"],
+      "description": "Controls Figma import behavior: 'prompt' asks each session, 'always' auto-imports if MCP available, 'never' skips Figma detection"
     }
   },
   "peerRequirements": {
