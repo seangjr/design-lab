@@ -9,12 +9,12 @@ Inside a Claude Code session, run:
 ```
 # Add the marketplace, then install
 /plugin marketplace add seangjr/design-lab
-/plugin install design-lab@seangjr-design-lab
+/plugin install design-lab@design-lab
 
 # Or from a local clone
 git clone https://github.com/seangjr/design-lab.git
 /plugin marketplace add ./design-lab
-/plugin install design-lab@local
+/plugin install design-lab@design-lab
 ```
 
 ## Quick Start

@@ -1,7 +1,7 @@
 {
   "name": "design-lab",
   "description": "Generate distinct UI design variations, collect feedback, synthesize the best elements, and produce implementation plans",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": {
     "name": "seangjr",
     "url": "https://github.com/seangjr"
